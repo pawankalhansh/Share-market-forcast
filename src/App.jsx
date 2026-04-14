@@ -119,18 +119,6 @@ function App() {
           ))}
         </div>
       </div>
-
-      <div className="about-section">
-        <h2>About</h2>
-        <p>Check out the live deployment for this app at the URL below:</p>
-        <a
-          href="https://pawankalhansh.github.io/All_In_One_Calculator/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          https://pawankalhansh.github.io/All_In_One_Calculator/
-        </a>
-      </div>
     </div>
   )
 }

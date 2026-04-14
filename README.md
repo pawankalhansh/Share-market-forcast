@@ -4,11 +4,10 @@ A simple React-based calculator application built with Vite for fast development
 
 ## Features
 
-- Add new tasks
-- Edit existing tasks
-- Mark tasks as complete
-- Delete tasks
-- Clean and responsive UI
+- Basic arithmetic operations
+- Percentage calculation
+- Clear and delete controls
+- Responsive UI
 
 ## Getting Started
 
@@ -55,9 +54,9 @@ This app can be deployed to GitHub Pages.
 1. Create a new repository on GitHub.
 2. Push this code to the repository:
    ```bash
-   git remote add origin https://github.com/your-username/your-repo-name.git
-   git branch -M main
-   git push -u origin main
+   git remote add origin https://github.com/pawankalhansh/All_In_One_Calculator.git
+   git branch -M master
+   git push -u origin master
    ```
 3. Build and deploy:
    ```bash
@@ -66,7 +65,9 @@ This app can be deployed to GitHub Pages.
    ```
 4. Enable GitHub Pages in the repository settings, selecting the `gh-pages` branch as the source.
 
-The app will be available at `https://pawankalhansh.github.io/All_In_One_Calculator/`
+The app is available at:
+
+- `https://pawankalhansh.github.io/All_In_One_Calculator/`
 
 ## Technologies Used
 

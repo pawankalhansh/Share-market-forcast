@@ -99,38 +99,6 @@ body {
   grid-column: span 2;
 }
 
-.about-section {
-  margin-top: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 22px;
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  color: #333;
-}
-
-.about-section h2 {
-  margin-bottom: 10px;
-  font-size: 22px;
-  color: #333;
-}
-
-.about-section p {
-  margin-bottom: 12px;
-  color: #666;
-  line-height: 1.6;
-}
-
-.about-section a {
-  color: #5b4fc5;
-  word-break: break-all;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.about-section a:hover {
-  text-decoration: underline;
-}
-
 @media (max-width: 480px) {
   .app {
     padding: 0 10px;
