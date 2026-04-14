@@ -1,179 +1,136 @@
 import { useState } from 'react'
 import './App.css'
 
+const buttons = [
+  'AC', 'DEL', '%', '/',
+  '7', '8', '9', '*',
+  '4', '5', '6', '-',
+  '1', '2', '3', '+',
+  '0', '.', '='
+]
+
 function App() {
-  const [tasks, setTasks] = useState([])
-  const [newTask, setNewTask] = useState('')
-  const [priority, setPriority] = useState('medium')
-  const [editingId, setEditingId] = useState(null)
-  const [editText, setEditText] = useState('')
-  const [filter, setFilter] = useState('all')
+  const [display, setDisplay] = useState('0')
+  const [overwrite, setOverwrite] = useState(false)
 
-  const addTask = () => {
-    if (newTask.trim()) {
-      setTasks([...tasks, { 
-        id: Date.now(), 
-        text: newTask, 
-        completed: false, 
-        priority: priority,
-        createdAt: new Date().toLocaleDateString()
-      }])
-      setNewTask('')
-      setPriority('medium')
+  const operators = ['/', '*', '-', '+']
+
+  const formatResult = (value) => {
+    const number = Number(value)
+    return Number.isFinite(number) ? String(parseFloat(number.toFixed(10))) : 'Error'
+  }
+
+  const evaluateExpression = (expression) => {
+    const sanitized = expression.replace(/%/g, '/100')
+    const result = Function(`"use strict"; return (${sanitized})`)()
+    return formatResult(result)
+  }
+
+  const handleButton = (value) => {
+    if (value === 'AC') {
+      setDisplay('0')
+      setOverwrite(false)
+      return
     }
+
+    if (value === 'DEL') {
+      if (overwrite || display.length === 1) {
+        setDisplay('0')
+        setOverwrite(false)
+        return
+      }
+      setDisplay(display.slice(0, -1))
+      return
+    }
+
+    if (value === '=') {
+      try {
+        const result = evaluateExpression(display)
+        setDisplay(result)
+        setOverwrite(true)
+      } catch {
+        setDisplay('Error')
+        setOverwrite(true)
+      }
+      return
+    }
+
+    if (operators.includes(value)) {
+      setOverwrite(false)
+      setDisplay((prev) => {
+        if (operators.includes(prev.slice(-1))) {
+          return prev.slice(0, -1) + value
+        }
+        return prev + value
+      })
+      return
+    }
+
+    if (value === '%') {
+      setOverwrite(false)
+      setDisplay((prev) => (prev === '0' ? '0%' : prev + '%'))
+      return
+    }
+
+    if (value === '.') {
+      if (overwrite) {
+        setDisplay('0.')
+        setOverwrite(false)
+        return
+      }
+      const lastSection = display.split(/[/\-*+]/).slice(-1)[0]
+      if (lastSection.includes('.')) return
+      setDisplay((prev) => prev + '.')
+      return
+    }
+
+    if (overwrite) {
+      setDisplay(value)
+      setOverwrite(false)
+      return
+    }
+
+    setDisplay((prev) => (prev === '0' ? value : prev + value))
   }
-
-  const toggleComplete = (id) => {
-    setTasks(tasks.map(task => task.id === id ? { ...task, completed: !task.completed } : task))
-  }
-
-  const deleteTask = (id) => {
-    setTasks(tasks.filter(task => task.id !== id))
-  }
-
-  const startEdit = (id, text) => {
-    setEditingId(id)
-    setEditText(text)
-  }
-
-  const saveEdit = () => {
-    setTasks(tasks.map(task => task.id === editingId ? { ...task, text: editText } : task))
-    setEditingId(null)
-    setEditText('')
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditText('')
-  }
-
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'active') return !task.completed
-    if (filter === 'completed') return task.completed
-    return true
-  })
-
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const priorityOrder = { high: 1, medium: 2, low: 3 }
-    return priorityOrder[a.priority] - priorityOrder[b.priority]
-  })
-
-  const completedCount = tasks.filter(t => t.completed).length
-  const totalCount = tasks.length
-
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
 
   return (
     <div className="app">
-      <div className="header">
-        <div className="header-content">
-          <h1>📋 Daily Tasks</h1>
-          <p className="date">{today}</p>
-        </div>
-        <div className="progress-circle">
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" className="bg-circle" />
-            <circle cx="50" cy="50" r="45" className="progress-circle" 
-              style={{strokeDashoffset: 282.7 - (282.7 * completedCount / (totalCount || 1))}} />
-          </svg>
-          <div className="progress-text">
-            <span className="progress-number">{completedCount}/{totalCount}</span>
-            <span className="progress-label">Done</span>
+      <div className="calculator-card">
+        <div className="calculator-header">
+          <div>
+            <h1>All In One Calculator</h1>
+            <p>Fast math operations, percentage and clear controls.</p>
           </div>
         </div>
-      </div>
 
-      <div className="input-section">
-        <div className="input-wrapper">
-          <input
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Add a new task..."
-            className="task-input"
-            onKeyPress={(e) => e.key === 'Enter' && addTask()}
-          />
-          <select value={priority} onChange={(e) => setPriority(e.target.value)} className="priority-select">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-          <button onClick={addTask} className="add-btn">+</button>
+        <div className="screen">
+          <div className="display">{display}</div>
         </div>
-      </div>
 
-      <div className="filter-section">
-        <button 
-          className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          All
-        </button>
-        <button 
-          className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
-          onClick={() => setFilter('active')}
-        >
-          Active
-        </button>
-        <button 
-          className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
-          onClick={() => setFilter('completed')}
-        >
-          Completed
-        </button>
-      </div>
-
-      {sortedTasks.length > 0 ? (
-        <ul className="task-list">
-          {sortedTasks.map(task => (
-            <li key={task.id} className={`task-item ${task.completed ? 'completed' : ''} priority-${task.priority}`}>
-              <div className="task-checkbox-wrapper">
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => toggleComplete(task.id)}
-                  className="task-checkbox"
-                />
-                <span className={`priority-badge ${task.priority}`}>{task.priority.charAt(0).toUpperCase()}</span>
-              </div>
-              <div className="task-content">
-                {editingId === task.id ? (
-                  <div className="edit-mode">
-                    <input
-                      type="text"
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="edit-input"
-                      onKeyPress={(e) => e.key === 'Enter' && saveEdit()}
-                      autoFocus
-                    />
-                  </div>
-                ) : (
-                  <span className="task-text">{task.text}</span>
-                )}
-              </div>
-              <div className="task-actions">
-                {editingId === task.id ? (
-                  <>
-                    <button className="save-btn" onClick={saveEdit}>✓</button>
-                    <button className="cancel-btn" onClick={cancelEdit}>✕</button>
-                  </>
-                ) : (
-                  <>
-                    <button className="edit-btn" onClick={() => startEdit(task.id, task.text)}>✎</button>
-                    <button className="delete-btn" onClick={() => deleteTask(task.id)}>🗑</button>
-                  </>
-                )}
-              </div>
-            </li>
+        <div className="buttons-grid">
+          {buttons.map((button) => (
+            <button
+              key={button}
+              className={`calc-btn ${button === '=' ? 'equal-btn' : ''} ${operators.includes(button) || button === '%' ? 'operator-btn' : ''} ${button === 'AC' || button === 'DEL' ? 'action-btn' : ''} ${button === '0' ? 'zero-btn' : ''}`}
+              onClick={() => handleButton(button)}
+            >
+              {button}
+            </button>
           ))}
-        </ul>
-      ) : (
-        <div className="empty-state">
-          <div className="empty-icon">✨</div>
-          <p>No tasks yet. Add one to get started!</p>
         </div>
-      )}
+      </div>
+
+      <div className="about-section">
+        <h2>About</h2>
+        <p>Check out the live deployment for this app at the URL below:</p>
+        <a
+          href="https://pawankalhansh.github.io/All_In_One_Calculator/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          https://pawankalhansh.github.io/All_In_One_Calculator/
+        </a>
+      </div>
     </div>
   )
 }
