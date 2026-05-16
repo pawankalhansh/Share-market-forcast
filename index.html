@@ -1314,12 +1314,32 @@ async function fetchLiveMarketData() {
   const trySymbols = ['NSEI','^NSEI','NSE:NIFTY','NIFTY','^BSESN','BSE:SENSEX','SGX:NIFTY'];
   for (const sym of trySymbols) {
     try {
-      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_API_KEY}`);
-      if (!res.ok) continue;
-      const j = await res.json();
-      // save last response for debugging
-      window.__lastFinnhubQuote = { symbol: sym, raw: j, status: res.status };
-      if (j && (j.c || j.pc)) return { symbol: sym, quote: j };
+      const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_API_KEY}`;
+      // Try direct fetch first
+      let res = null;
+      try {
+        res = await fetch(url);
+        if (res && res.ok) {
+          const j = await res.json();
+          window.__lastFinnhubQuote = { symbol: sym, raw: j, status: res.status, path: 'direct' };
+          if (j && (j.c || j.pc)) return { symbol: sym, quote: j };
+        }
+      } catch (e) {
+        // direct fetch failed — will attempt proxy
+      }
+
+      // Proxy fallback (AllOrigins) to mitigate CORS in browsers
+      try {
+        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const pres = await fetch(proxy);
+        if (pres && pres.ok) {
+          const pj = await pres.json();
+          window.__lastFinnhubQuote = { symbol: sym, raw: pj, status: pres.status, path: 'proxy' };
+          if (pj && (pj.c || pj.pc)) return { symbol: sym, quote: pj };
+        }
+      } catch (e) {
+        // proxy also failed — try next symbol
+      }
     } catch (e) {
       // try next symbol
     }
@@ -1329,10 +1349,32 @@ async function fetchLiveMarketData() {
 
 async function fetchLiveNews() {
   try {
-    const res = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`);
-    if (!res.ok) throw new Error('News fetch failed');
-    const data = await res.json();
-    return Array.isArray(data) ? data.slice(0,6) : [];
+    const url = `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`;
+    try {
+      const res = await fetch(url);
+      if (res && res.ok) {
+        const data = await res.json();
+        window.__lastFinnhubNews = { raw: data, status: res.status, path: 'direct' };
+        return Array.isArray(data) ? data.slice(0,6) : [];
+      }
+    } catch (e) {
+      // direct fetch failed, fall through to proxy
+    }
+
+    // Proxy fallback
+    try {
+      const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      const pres = await fetch(proxy);
+      if (pres && pres.ok) {
+        const pdata = await pres.json();
+        window.__lastFinnhubNews = { raw: pdata, status: pres.status, path: 'proxy' };
+        return Array.isArray(pdata) ? pdata.slice(0,6) : [];
+      }
+    } catch (e) {
+      // proxy failed
+    }
+
+    throw new Error('News fetch failed (direct and proxy attempts)');
   } catch (e) {
     return [];
   }
