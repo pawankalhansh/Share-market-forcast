@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sensex Forecast</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Independent Market Tool</p>
+          <h1>Indian Market Forecast</h1>
+          <p>Estimate a simple outlook for NIFTY or SENSEX using current index value, horizon, and market sentiment.</p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="grid-two">
+          <div class="field">
+            <label for="indexSelect">Market index</label>
+            <select id="indexSelect">
+              <option value="NIFTY 50">NIFTY 50</option>
+              <option value="SENSEX">SENSEX</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="horizonSelect">Forecast horizon</label>
+            <select id="horizonSelect">
+              <option value="30">1 Month</option>
+              <option value="90">3 Months</option>
+              <option value="180">6 Months</option>
+              <option value="365">1 Year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-two">
+          <div class="field">
+            <label for="currentValue">Current index value</label>
+            <input id="currentValue" type="number" value="21800" min="1" />
+          </div>
+          <div class="field">
+            <label for="sentimentSelect">Market sentiment</label>
+            <select id="sentimentSelect">
+              <option value="conservative">Conservative</option>
+              <option value="balanced" selected>Balanced</option>
+              <option value="optimistic">Optimistic</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="forecastBtn">Generate Forecast</button>
+          <span id="statusText" class="status-text"></span>
+        </div>
+      </section>
+
+      <section class="panel result-panel" id="resultSection" hidden>
+        <h2>Forecast summary</h2>
+        <div class="result-grid">
+          <div class="result-card">
+            <span class="label">Projected range</span>
+            <strong id="rangeValue">-</strong>
+          </div>
+          <div class="result-card">
+            <span class="label">Estimated CAGR</span>
+            <strong id="cagrValue">-</strong>
+          </div>
+          <div class="result-card">
+            <span class="label">Confidence</span>
+            <strong id="confidenceValue">-</strong>
+          </div>
+        </div>
+        <p class="disclaimer">This is a rough forecast calculator for planning purposes only. It is not financial advice.</p>
+      </section>
+    </div>
+
+    <script src="forecast.js"></script>
+  </body>
+</html>
