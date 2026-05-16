@@ -1,76 +1,51 @@
-# All In One Calculator
+# Market Oracle — Sensex & Nifty Forecast
 
-A simple React-based calculator application built with Vite for fast development and deployment.
+This repository contains the standalone Market Oracle page and a small proxy server used to fetch live market data.
 
-## Features
+## Structure
 
-- Basic arithmetic operations
-- Percentage calculation
-- Clear and delete controls
-- Responsive UI
+- `sensex-forecast/` — static page for Sensex and Nifty forecast analysis
+- `proxy-server/` — simple Express proxy for Finnhub quote and news requests
+- `README.md` — this project documentation
 
-## Getting Started
+## Usage
 
-### Prerequisites
+### Run the proxy server
 
-- Node.js (v14 or higher)
-- npm
-
-### Installation
-
-1. Clone the repository
-2. Install dependencies:
+1. Open a terminal:
    ```bash
+   cd proxy-server
    npm install
    ```
+2. Set your Finnhub API key and start the proxy:
+   ```bash
+   set FINNHUB_API_KEY=your_api_key_here
+   npm start
+   ```
+3. Configure `sensex-forecast/index.html`:
+   - Set `SERVER_PROXY_BASE` to your proxy URL, for example `http://localhost:4000`
+   - This enables live quote and news fetching through the proxy.
 
-### Development
+### Open the static forecast page
 
-Run the development server:
-```bash
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173) to view the app in your browser.
-
-### Build
-
-Build the app for production:
-```bash
-npm run build
-```
-
-### Preview
-
-Preview the production build:
-```bash
-npm run preview
-```
+Open `sensex-forecast/index.html` in a browser to view the Market Oracle page.
 
 ## Deployment
 
-This app can be deployed to GitHub Pages.
+The `sensex-forecast` page can be hosted as a static site, such as GitHub Pages.
 
-1. Create a new repository on GitHub.
-2. Push this code to the repository:
-   ```bash
-   git remote add origin https://github.com/pawankalhansh/All_In_One_Calculator.git
-   git branch -M master
-   git push -u origin master
-   ```
-3. Build and deploy:
-   ```bash
-   npm run build
-   npm run deploy
-   ```
-4. Enable GitHub Pages in the repository settings, selecting the `gh-pages` branch as the source.
+### GitHub Pages deployment
 
-The app is available at:
+1. Push this repository to GitHub.
+2. Ensure `sensex-forecast/index.html` is accessible from the published branch.
+3. If using `SERVER_PROXY_BASE`, deploy `proxy-server` separately to a hosting service that supports Node.js.
 
-- `https://pawankalhansh.github.io/All_In_One_Calculator/`
+## Notes
 
-## Technologies Used
+- The page has a local forecast simulation mode and an optional live mode.
+- Live live mode uses the proxy server to avoid browser CORS restrictions.
+- The direct Finnhub API key in `sensex-forecast/index.html` is only for fallback and should not be relied on in production.
 
-- React
-- Vite
-- CSS
+## Existing content
+
+If the repository also contains other projects or a React app in the root, the primary Market Oracle deliverable is in `sensex-forecast/`.
