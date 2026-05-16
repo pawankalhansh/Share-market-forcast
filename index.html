@@ -1066,7 +1066,7 @@ offline on GitHub Pages without external Claude calls.
 
       <div style="padding: 0 20px 20px">
         <div style="text-align:center;margin-bottom:8px;">
-          <label style="color:var(--text-muted);font-family:var(--mono);font-size:12px;"><input type="checkbox" id="liveToggle" checked style="margin-right:8px"> Use Live Data (Finnhub)</label>
+          <label style="color:var(--text-muted);font-family:var(--mono);font-size:12px;"><input type="checkbox" id="liveToggle" checked style="margin-right:8px"> Use Live Data</label>
         </div>
         <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
           <span class="btn-icon">🔮</span>
@@ -1116,7 +1116,7 @@ const tickerData = [
   { name: 'NIKKEI 225', val: '38,236', chg: '-0.63%', up: false },
   { name: 'HANG SENG', val: '21,847', chg: '+1.12%', up: true },
   { name: 'SGX NIFTY', val: '25,289', chg: '+0.28%', up: true },
-  { name: 'CRUDE OIL', val: '$74.82', chg: '-0.92%', up: false },
+  { name: 'CRUDE OIL', val: '₹74.82', chg: '-0.92%', up: false },
   { name: 'GOLD', val: '₹75,420', chg: '+0.31%', up: true },
   { name: 'USD/INR', val: '83.94', chg: '-0.08%', up: false },
   { name: 'FTSE 100', val: '8,312', chg: '+0.22%', up: true },
@@ -1310,38 +1310,41 @@ const FINNHUB_API_KEY = 'd846tjpr01qutij857lgd846tjpr01qutij857m0';
 // ═══════════════════════════════════════════
 // Live data helpers (Finnhub)
 // ═══════════════════════════════════════════
-const TRY_SYMBOLS = ['NSEI','^NSEI','NSE:NIFTY','NIFTY','^BSESN','BSE:SENSEX','SGX:NIFTY','^NSEI.NS','^BSESN.BO'];
 
 async function fetchLiveMarketData() {
-    const trySymbols = ['^NSEI', '^BSESN', 'NSEI']; // Nifty 50 and Sensex
+    const sym = '^NSEI'; // Nifty 50 on Yahoo Finance
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
 
-    for (const sym of trySymbols) {
-        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}`;
+    // 3 Best Proxies (codetabs sabse reliable hai)
+    const proxies = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+    ];
 
-        // Proxies ka list (agar ek fail ho toh dusra try karega)
-        const proxies = [
-            `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-            `https://thingproxy.freeboard.io/fetch/${url}`
-        ];
-
-        for (const proxyUrl of proxies) {
-            try {
-                const res = await fetch(proxyUrl);
-                if (res.ok) {
-                    const j = await res.json();
-                    const r = j?.quoteResponse?.result?.[0];
-                    if (r && (r.regularMarketPrice || r.regularMarketPreviousClose)) {
-                        console.log(`Live data fetched for ${sym} successfully!`);
-                        return { symbol: sym, quote: r };
-                    }
+    for (const proxyUrl of proxies) {
+        try {
+            const res = await fetch(proxyUrl);
+            if (res.ok) {
+                const data = await res.json();
+                const meta = data?.chart?.result?.[0]?.meta;
+                
+                if (meta && meta.regularMarketPrice) {
+                    console.log("Live data fetched successfully!");
+                    return {
+                        symbol: 'NIFTY 50',
+                        quote: {
+                            regularMarketPrice: meta.regularMarketPrice,
+                            regularMarketPreviousClose: meta.chartPreviousClose || meta.regularMarketPrice
+                        }
+                    };
                 }
-            } catch (e) {
-                console.warn(`Proxy failed, trying next...`);
             }
+        } catch (e) {
+            console.warn("Proxy blocked, trying next...");
         }
     }
-    throw new Error('Live data fetch failed. All proxies blocked.');
+    throw new Error('All CORS proxies failed to fetch Live Data.');
 }
 
 // Normalize different quote shapes (Finnhub or Yahoo) into common fields
@@ -1395,34 +1398,6 @@ async function fetchLiveNews() {
   }
 }
 
-// Automated quick test helpers (direct vs proxy) to surface CORS/401/429 issues
-async function testFinnhubDirect(symbol) {
-  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
-  try {
-    const r = await fetch(url);
-    const text = await r.text();
-    let body = text;
-    try { body = JSON.parse(text); } catch(e) {}
-    return { path: 'direct', status: r.status, body };
-  } catch (err) {
-    return { path: 'direct', error: String(err) };
-  }
-}
-
-async function testFinnhubProxy(symbol) {
-  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
-  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  try {
-    const r = await fetch(proxy);
-    const text = await r.text();
-    let body = text;
-    try { body = JSON.parse(text); } catch(e) {}
-    return { path: 'proxy', status: r.status, body };
-  } catch (err) {
-    return { path: 'proxy', error: String(err) };
-  }
-}
-
 function generateForecastFromLive({ live, news }) {
   const q = live.quote;
   const norm = normalizeQuote(q);
@@ -1438,7 +1413,7 @@ function generateForecastFromLive({ live, news }) {
     (news.length ? news.map(n => `- ${n.headline || n.summary || n.source}`).join('\n') : '- No headlines');
 
   return {
-    sensex_current: current,
+    sensex_current: current, // Just copying Nifty as a placeholder if Sensex not fetched
     sensex_upside: upside,
     sensex_downside: downside,
     sensex_resistance: upside + 150,
@@ -1505,9 +1480,6 @@ async function runAnalysis() {
     }
   }, 3000);
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' });
-
-  // Try live data if user enabled it, otherwise fall back to local simulation
   const useLive = document.getElementById('liveToggle') && document.getElementById('liveToggle').checked;
 
   if (useLive) {
@@ -1518,45 +1490,12 @@ async function runAnalysis() {
       const forecast = generateForecastFromLive({ live, news });
       populateForecast(forecast);
       output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
-      // Debug: show raw live response and news so we can inspect returned values
-      const debugPre = document.createElement('pre');
-      debugPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:12px;max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:8px';
-      const raw = { live: window.__lastFinnhubQuote || live, news };
-      debugPre.textContent = 'DEBUG — raw live data:\n' + JSON.stringify(raw, null, 2);
-      output.appendChild(debugPre);
-        // Run automated connectivity tests and show results
-        try {
-          const results = {};
-          for (const sym of TRY_SYMBOLS) {
-            const direct = await testFinnhubDirect(sym);
-            const proxy = await testFinnhubProxy(sym);
-            results[sym] = { direct, proxy };
-          }
-          const autoPre = document.createElement('pre');
-          autoPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:8px;max-height:360px;overflow:auto;border-top:1px dashed var(--border);padding-top:8px';
-          autoPre.textContent = 'AUTOTEST — Finnhub connectivity (symbols: ' + TRY_SYMBOLS.join(',') + ')\n' + JSON.stringify(results, null, 2);
-          output.appendChild(autoPre);
-        } catch (e) {
-          console.warn('Autotest error', e);
-        }
     } catch (err) {
       output.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:11px">Live fetch failed: ${err.message}\n\nFalling back to local simulation.</span>`;
-      // Run connectivity autotest (direct + proxy) and show results to help debug
-      try {
-        const sym = 'NSEI';
-        const directTest = await testFinnhubDirect(sym);
-        const proxyTest = await testFinnhubProxy(sym);
-        const testPre = document.createElement('pre');
-        testPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:8px;max-height:220px;overflow:auto;border-top:1px dashed var(--border);padding-top:8px';
-        testPre.textContent = 'AUTOTEST (after failure) — Finnhub connectivity (symbol: ' + sym + ')\n' + JSON.stringify({ direct: directTest, proxy: proxyTest }, null, 2);
-        output.appendChild(testPre);
-      } catch (e) {
-        console.warn('Autotest post-failure error', e);
-      }
-
+      
       const forecast = generateLocalForecast();
       populateForecast(forecast);
-      output.innerHTML += `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+      output.innerHTML += `<br><br><pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
     }
   } else {
     await new Promise((resolve) => setTimeout(resolve, 3600));
