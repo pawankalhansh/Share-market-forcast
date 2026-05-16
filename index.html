@@ -6,27 +6,55 @@
 <title>Market Oracle — Sensex & Nifty AI Forecaster</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* 🌌 DARK THEME (DEFAULT) — Deep Space Indigo */
   :root {
-    --bg: #050a0f;
-    --surface: #0b1520;
-    --surface2: #0f1d2e;
-    --border: #1a3050;
-    --green: #00e676;
-    --green-dim: #00b85a;
-    --red: #ff1744;
-    --red-dim: #c0002a;
-    --amber: #ffab00;
-    --blue: #00b0ff;
-    --purple: #7c4dff;
-    --text: #e0eeff;
-    --text-dim: #6b8aaa;
-    --text-muted: #3a5470;
+    --bg: #06060f;
+    --surface: #0d0d1f;
+    --surface2: #12122a;
+    --border: #1e1e42;
+    --green: #00f5a0;
+    --green-dim: #00c97d;
+    --red: #ff4466;
+    --red-dim: #cc1133;
+    --amber: #ffcc00;
+    --blue: #38bdf8;
+    --purple: #a78bfa;
+    --text: #e8eeff;
+    --text-dim: #7b8db0;
+    --text-muted: #3a3a60;
     --mono: 'Space Mono', monospace;
     --display: 'Bebas Neue', sans-serif;
     --body: 'DM Sans', sans-serif;
-    --glow-green: 0 0 20px rgba(0,230,118,0.3);
-    --glow-red: 0 0 20px rgba(255,23,68,0.3);
-    --glow-amber: 0 0 20px rgba(255,171,0,0.3);
+    --glow-green: 0 0 24px rgba(0,245,160,0.35);
+    --glow-red: 0 0 24px rgba(255,68,102,0.35);
+    --glow-amber: 0 0 24px rgba(255,204,0,0.35);
+    --header-bg: rgba(6,6,15,0.96);
+    --btn-grad-1: #0a0a22;
+    --btn-grad-2: #14143a;
+  }
+
+  /* ☀️ LIGHT THEME */
+  [data-theme="light"] {
+    --bg: #f0f4ff;
+    --surface: #ffffff;
+    --surface2: #e8edf8;
+    --border: #c8d0e8;
+    --green: #059669;
+    --green-dim: #10b981;
+    --red: #e11d48;
+    --red-dim: #f43f5e;
+    --amber: #d97706;
+    --blue: #2563eb;
+    --purple: #7c3aed;
+    --text: #1e1e3a;
+    --text-dim: #4a5578;
+    --text-muted: #8892b0;
+    --glow-green: none;
+    --glow-red: none;
+    --glow-amber: none;
+    --header-bg: rgba(255,255,255,0.97);
+    --btn-grad-1: #e8edf8;
+    --btn-grad-2: #f0f4ff;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,8 +66,9 @@
     min-height: 100vh;
     overflow-x: hidden;
     background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(0,176,255,0.04) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, rgba(124,77,255,0.04) 0%, transparent 50%);
+      radial-gradient(ellipse at 20% 0%, rgba(56,189,248,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(167,139,250,0.06) 0%, transparent 50%);
+    transition: background 0.3s ease, color 0.3s ease;
   }
 
   body::before {
@@ -57,7 +86,8 @@
     justify-content: space-between;
     padding: 16px 28px;
     border-bottom: 1px solid var(--border);
-    background: rgba(11,21,32,0.95);
+    background: var(--header-bg);
+    transition: background 0.3s ease, border-color 0.3s ease;
     backdrop-filter: blur(10px);
     position: sticky;
     top: 0;
@@ -182,9 +212,13 @@
   .level-target { color: var(--amber); }
   .level-sl { color: var(--purple); }
 
-  .analyze-btn { display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #0a1f35, #0f2a48); border: 1px solid var(--blue); border-radius: 8px; color: var(--blue); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; padding: 14px 28px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; width: 100%; margin: 16px 0 0; box-shadow: 0 0 30px rgba(0,176,255,0.1); }
-  .analyze-btn:hover { background: linear-gradient(135deg, #0d2a45, #1a3d60); box-shadow: 0 0 30px rgba(0,176,255,0.25); transform: translateY(-1px); }
+  .analyze-btn { display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, var(--btn-grad-1), var(--btn-grad-2)); border: 1px solid var(--blue); border-radius: 8px; color: var(--blue); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; padding: 14px 28px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; width: 100%; margin: 16px 0 0; box-shadow: 0 0 30px rgba(56,189,248,0.12); }
+  .analyze-btn:hover { border-color: var(--purple); box-shadow: 0 0 35px rgba(167,139,250,0.3); transform: translateY(-1px); }
   .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Theme Toggle Button */
+  .theme-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); font-family: var(--mono); font-size: 10px; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 6px; letter-spacing: 1px; }
+  .theme-btn:hover { color: var(--text); border-color: var(--blue); box-shadow: 0 0 12px rgba(56,189,248,0.2); }
   .btn-icon { font-size: 16px; }
 
   .thinking { display: none; align-items: center; gap: 10px; padding: 16px 0; font-family: var(--mono); font-size: 11px; color: var(--blue); }
@@ -246,6 +280,7 @@
     </div>
   </div>
   <div class="header-right">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀️ Light</button>
     <div class="live-badge">
       <div class="live-dot"></div>
       AI ENGINE ONLINE
@@ -535,6 +570,27 @@ to ensure 100% Guaranteed Uptime & Bypass CORS.
 </div>
 
 <script>
+// ═══════════════════════════════════════════
+// THEME SWITCHER
+// ═══════════════════════════════════════════
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('mo-theme', next);
+  document.getElementById('theme-btn').innerHTML = next === 'light' ? '🌙 Dark' : '☀️ Light';
+}
+(function(){
+  const saved = localStorage.getItem('mo-theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('theme-btn');
+      if(btn) btn.innerHTML = '🌙 Dark';
+    });
+  }
+})();
+
 // ═══════════════════════════════════════════
 // CLOCK
 // ═══════════════════════════════════════════
