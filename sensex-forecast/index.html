@@ -1317,6 +1317,8 @@ async function fetchLiveMarketData() {
       const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_API_KEY}`);
       if (!res.ok) continue;
       const j = await res.json();
+      // save last response for debugging
+      window.__lastFinnhubQuote = { symbol: sym, raw: j, status: res.status };
       if (j && (j.c || j.pc)) return { symbol: sym, quote: j };
     } catch (e) {
       // try next symbol
@@ -1430,6 +1432,12 @@ async function runAnalysis() {
       const forecast = generateForecastFromLive({ live, news });
       populateForecast(forecast);
       output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+      // Debug: show raw live response and news so we can inspect returned values
+      const debugPre = document.createElement('pre');
+      debugPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:12px;max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:8px';
+      const raw = { live: window.__lastFinnhubQuote || live, news };
+      debugPre.textContent = 'DEBUG — raw live data:\n' + JSON.stringify(raw, null, 2);
+      output.appendChild(debugPre);
     } catch (err) {
       output.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:11px">Live fetch failed: ${err.message}\n\nFalling back to local simulation.</span>`;
       const forecast = generateLocalForecast();
