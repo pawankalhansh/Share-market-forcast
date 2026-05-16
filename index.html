@@ -407,7 +407,7 @@
         <thead>
           <tr>
             <th>Market</th>
-            <th>Price</th> <!-- NEW COLUMN ADDED -->
+            <th>Price</th>
             <th>Change</th>
             <th>Impact</th>
           </tr>
@@ -540,7 +540,7 @@ to bypass blocks and get real-time data.
 
 <!-- Footer -->
 <div class="footer-bar">
-  <span>MARKET ORACLE © 2025 | Mathematical Forecasting | Live + Simulation Data</span>
+  <span>MARKET ORACLE © 2025 | Mathematical Forecasting | Live Data Built-In</span>
   <span id="last-updated">Last Updated: Never</span>
   <span>FOR EDUCATIONAL PURPOSE ONLY | NOT INVESTMENT ADVICE</span>
 </div>
@@ -635,13 +635,13 @@ function setGauge(score) {
 }
 
 // ═══════════════════════════════════════════
-// LIVE DATA FETCHING ENGINE (Sequential & Safe)
+// LIVE DATA FETCHING ENGINE (V7 Spark - CORS Proof)
 // ═══════════════════════════════════════════
 async function fetchSymbolQuote(sym) {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+    const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(sym)}&range=1d&interval=1m`;
     
     const proxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
         `https://corsproxy.io/?${encodeURIComponent(url)}`
     ];
@@ -649,7 +649,7 @@ async function fetchSymbolQuote(sym) {
     for (const proxyUrl of proxies) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
 
             const res = await fetch(proxyUrl, { cache: 'no-store', signal: controller.signal });
             clearTimeout(timeoutId);
@@ -659,7 +659,8 @@ async function fetchSymbolQuote(sym) {
                 if (data && data.contents) {
                     try { data = JSON.parse(data.contents); } catch(e) {}
                 }
-                const meta = data?.chart?.result?.[0]?.meta;
+                const result = data?.spark?.result?.[0];
+                const meta = result?.response?.[0]?.meta || result?.meta;
                 
                 if (meta && meta.regularMarketPrice) {
                     return {
@@ -669,7 +670,7 @@ async function fetchSymbolQuote(sym) {
                 }
             }
         } catch (e) {
-            // Silently fall through to next proxy
+            // Next proxy
         }
     }
     return null;
@@ -702,7 +703,7 @@ async function getForecastData(useLive) {
         document.getElementById('think-status').textContent = 'Fetching Live Nifty 50...';
         nQuote = await fetchSymbolQuote('^NSEI');
         
-        await new Promise(r => setTimeout(r, 600)); // Prevent block
+        await new Promise(r => setTimeout(r, 600)); 
         
         document.getElementById('think-status').textContent = 'Fetching Live Sensex...';
         sQuote = await fetchSymbolQuote('^BSESN');
@@ -717,7 +718,7 @@ async function getForecastData(useLive) {
             isLiveSuccess = true;
         }
 
-        // Fetch Global Markets Sequentially to avoid CORS rate limiting
+        // Fetch Global Markets Sequentially to avoid rate limiting
         for (const item of globalsList) {
             document.getElementById('think-status').textContent = `Fetching ${item.name}...`;
             const gData = await fetchSymbolQuote(item.sym);
@@ -758,22 +759,19 @@ async function getForecastData(useLive) {
     const sUpside = Math.round(sCurrent * (1 + volatility));
     const sDownside = Math.round(sCurrent * (1 - volatility));
 
-    // Dynamic Default Global Data if real fetch failed (so it never shows 0.00% weirdly)
-    const defaultGlobals = [
-      { name: 'DOW JONES', country: 'USA', val: '43,828', change: parseFloat((nChangePct * 0.8).toFixed(2)) || 0.28, impact: nChangePct >= 0 ? 'BULLISH' : 'BEARISH' },
-      { name: 'S&P 500', country: 'USA', val: '5,958', change: parseFloat((nChangePct * 0.9).toFixed(2)) || 0.41, impact: nChangePct >= 0 ? 'BULLISH' : 'BEARISH' },
-      { name: 'NASDAQ', country: 'USA', val: '19,310', change: parseFloat((nChangePct * 1.1).toFixed(2)) || 0.55, impact: nChangePct >= 0 ? 'BULLISH' : 'BEARISH' },
-      { name: 'NIKKEI 225', country: 'JAPAN', val: '¥38,236', change: parseFloat((nChangePct * 0.6).toFixed(2)) || -0.63, impact: nChangePct >= 0 ? 'BULLISH' : 'BEARISH' },
-      { name: 'HANG SENG', country: 'HONG KONG', val: 'HK$21,847', change: parseFloat((sChangePct * 1.2).toFixed(2)) || 1.12, impact: sChangePct >= 0 ? 'BULLISH' : 'BEARISH' },
-      { name: 'SGX NIFTY', country: 'SINGAPORE', val: nCurrent.toLocaleString('en-IN'), change: parseFloat(nChangePct.toFixed(2)), impact: nBias },
-      { name: 'CRUDE OIL', country: 'GLOBAL', val: '$74.82', change: parseFloat((-nChangePct * 0.5).toFixed(2)) || -0.45, impact: nChangePct < 0 ? 'BULLISH' : 'BEARISH' },
-      { name: 'USD/INR', country: 'INDIA', val: '₹83.94', change: parseFloat((-nChangePct * 0.1).toFixed(2)) || -0.12, impact: nChangePct < 0 ? 'BULLISH' : 'BEARISH' },
-    ];
-
-    // Combine fetched data with defaults
-    const finalGlobals = defaultGlobals.map(dg => {
-        const liveMatch = fetchedGlobals.find(fg => fg.name === dg.name);
-        return liveMatch ? liveMatch : dg;
+    // Proper fallback handling for Global Markets UI (No 0.00% nonsense)
+    const finalGlobals = globalsList.map(item => {
+        const liveMatch = fetchedGlobals.find(fg => fg.name === item.name);
+        if (liveMatch) return liveMatch;
+        
+        // Return clear "API Blocked" format if completely failed
+        return {
+            name: item.name,
+            country: item.country,
+            val: 'API Blocked',
+            change: 0,
+            impact: 'NEUTRAL'
+        };
     });
 
     // Update Top Ticker
@@ -783,8 +781,8 @@ async function getForecastData(useLive) {
     finalGlobals.forEach(fg => {
         const tIdx = tickerData.findIndex(t => t.name === fg.name);
         if(tIdx > -1) {
-            tickerData[tIdx].val = fg.val;
-            tickerData[tIdx].chg = (fg.change >= 0 ? '+' : '') + fg.change.toFixed(2) + '%';
+            tickerData[tIdx].val = fg.val !== 'API Blocked' ? fg.val : 'N/A';
+            tickerData[tIdx].chg = fg.val !== 'API Blocked' ? ((fg.change >= 0 ? '+' : '') + fg.change.toFixed(2) + '%') : '--';
             tickerData[tIdx].up = fg.change >= 0;
         }
     });
@@ -802,7 +800,7 @@ async function getForecastData(useLive) {
     if (isLiveSuccess) {
         analysisFinalText = `LIVE MARKET ANALYSIS SUMMARY:\n\nCurrently, NIFTY 50 is trading at ₹${nCurrent.toLocaleString('en-IN')} and SENSEX is at ₹${sCurrent.toLocaleString('en-IN')}.\nThe market structure shows a ${nBias.toLowerCase()} stance for tomorrow based on current trends.\n\nKey factors to watch:\n1. Global Markets: US indices are providing the main direction.\n2. Sector Rotation: Expect activity in banking and IT sectors depending on the early morning trend.\n3. F&O Data: Options data points to strong resistance at upper levels.`;
     } else {
-        analysisFinalText = `⚠️ LIVE DATA BLOCKED: Your network/ISP blocked the connection to the stock market APIs. Showing an offline dynamic simulation.\n\nCurrently, NIFTY 50 is simulated at ₹${nCurrent.toLocaleString('en-IN')} and SENSEX is at ₹${sCurrent.toLocaleString('en-IN')}.\nThe market structure shows a ${nBias.toLowerCase()} stance for tomorrow.\n\nKey factors to watch:\n1. Global Markets: Simulated indices are showing stability.\n2. Sector Rotation: Expect activity in key index movers.\n3. F&O Data: Simulated options data points to strong resistance.`;
+        analysisFinalText = `⚠️ LIVE DATA ERROR: Could not connect to API.\n\nSimulating offline numbers:\nNIFTY 50 is calculated at ₹${nCurrent.toLocaleString('en-IN')} and SENSEX is at ₹${sCurrent.toLocaleString('en-IN')}.\n\nTry using a different network/Wi-Fi to bypass the proxy blocks.`;
     }
 
     return {
@@ -893,16 +891,18 @@ function populateForecast(data) {
   document.getElementById('stat-global').textContent = data.positive_global + '/10';
   document.getElementById('stat-news').textContent = data.news_scanned + '+';
 
-  // NEW TABLE LOGIC WITH PRICE COLUMN
+  // Table mapped perfectly with Price Column
   const tbody = document.getElementById('markets-body');
-  tbody.innerHTML = data.global_markets.map(m => `
+  tbody.innerHTML = data.global_markets.map(m => {
+    let chgHtml = m.val === 'API Blocked' ? `<td style="color:var(--text-muted)">--</td>` : `<td class="${m.change >= 0 ? 'val-up' : 'val-dn'}">${m.change >= 0 ? '▲' : '▼'} ${Math.abs(m.change).toFixed(2)}%</td>`;
+    return `
     <tr>
       <td><div class="market-name">${m.name}</div><div class="market-country">${m.country}</div></td>
-      <td style="font-family: var(--mono); font-weight: bold; font-size: 12px; color: #fff;">${m.val}</td>
-      <td class="${m.change >= 0 ? 'val-up' : 'val-dn'}">${m.change >= 0 ? '▲' : '▼'} ${Math.abs(m.change).toFixed(2)}%</td>
+      <td style="font-family: var(--mono); font-weight: bold; font-size: 12px; color: ${m.val === 'API Blocked' ? 'var(--red)' : '#fff'};">${m.val}</td>
+      ${chgHtml}
       <td><span class="tag ${m.impact === 'BULLISH' ? 'bull' : m.impact === 'BEARISH' ? 'bear' : ''}" style="font-size:8px">${m.impact}</span></td>
     </tr>
-  `).join('');
+  `}).join('');
 
   document.getElementById('fno-content').innerHTML = `
     <div class="fno-section">
