@@ -1065,6 +1065,9 @@ offline on GitHub Pages without external Claude calls.
       </div>
 
       <div style="padding: 0 20px 20px">
+        <div style="text-align:center;margin-bottom:8px;">
+          <label style="color:var(--text-muted);font-family:var(--mono);font-size:12px;"><input type="checkbox" id="liveToggle" style="margin-right:8px"> Use Live Data (Finnhub)</label>
+        </div>
         <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
           <span class="btn-icon">🔮</span>
           RUN AI ANALYSIS — LIVE MARKET FORECAST
@@ -1300,6 +1303,94 @@ function parseAIResponse(text) {
 }
 
 // ═══════════════════════════════════════════
+// CONFIG: Finnhub API (paste your key here)
+// WARNING: this key will be public in the static site; rotate if needed
+const FINNHUB_API_KEY = 'd846tjpr01qutij857lgd846tjpr01qutij857m0';
+
+// ═══════════════════════════════════════════
+// Live data helpers (Finnhub)
+// ═══════════════════════════════════════════
+async function fetchLiveMarketData() {
+  const trySymbols = ['NSEI','^NSEI','NSE:NIFTY','NIFTY','^BSESN','BSE:SENSEX','SGX:NIFTY'];
+  for (const sym of trySymbols) {
+    try {
+      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_API_KEY}`);
+      if (!res.ok) continue;
+      const j = await res.json();
+      if (j && (j.c || j.pc)) return { symbol: sym, quote: j };
+    } catch (e) {
+      // try next symbol
+    }
+  }
+  throw new Error('No live quote available (CORS or symbol mismatch)');
+}
+
+async function fetchLiveNews() {
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`);
+    if (!res.ok) throw new Error('News fetch failed');
+    const data = await res.json();
+    return Array.isArray(data) ? data.slice(0,6) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function generateForecastFromLive({ live, news }) {
+  const q = live.quote;
+  const current = Math.round(q.c || q.pc || 0);
+  const prev = Math.round(q.pc || q.o || current);
+  const changePct = prev ? Math.round(((current - prev) / prev) * 10000) / 100 : 0;
+  const bias = changePct >= 0.3 ? 'BULLISH' : changePct <= -0.3 ? 'BEARISH' : 'NEUTRAL';
+
+  const upside = Math.round(current * (1 + 0.008 + Math.abs(changePct) / 100));
+  const downside = Math.round(current * (1 - 0.008 - Math.abs(changePct) / 200));
+
+  const analysisText = `Live Market Snapshot (${live.symbol}): current ${current}, previous close ${prev}, change ${changePct}%\nTop headlines:\n` +
+    (news.length ? news.map(n => `- ${n.headline || n.summary || n.source}`).join('\n') : '- No headlines');
+
+  return {
+    sensex_current: current,
+    sensex_upside: upside,
+    sensex_downside: downside,
+    sensex_resistance: upside + 150,
+    sensex_support: downside - 150,
+    sensex_confidence: Math.min(95, Math.max(40, 50 + Math.round(changePct * 2))),
+    sensex_bias: bias,
+    sensex_call_resistance: String(upside + 100),
+    sensex_put_support: String(downside - 100),
+    sensex_max_pain: String(Math.round((current + upside) / 2)),
+    sensex_buy_above: String(current + Math.round(current * 0.02)),
+    sensex_sell_below: String(current - Math.round(current * 0.02)),
+    sensex_sl_long: String(current - Math.round(current * 0.03)),
+    sensex_sl_short: String(current + Math.round(current * 0.03)),
+    nifty_current: current,
+    nifty_upside: upside,
+    nifty_downside: downside,
+    nifty_resistance: upside + 50,
+    nifty_support: downside - 50,
+    nifty_confidence: Math.min(95, Math.max(40, 50 + Math.round(changePct * 2) - 3)),
+    nifty_bias: bias,
+    nifty_call_resistance: String(upside + 40),
+    nifty_put_support: String(downside - 40),
+    nifty_max_pain: String(Math.round((current + upside) / 2)),
+    nifty_buy_above: String(current + Math.round(current * 0.01)),
+    nifty_sell_below: String(current - Math.round(current * 0.01)),
+    nifty_sl_long: String(current - Math.round(current * 0.012)),
+    nifty_sl_short: String(current + Math.round(current * 0.012)),
+    sentiment_score: 50 + Math.round(changePct * 2),
+    bullish_signals: bias === 'BULLISH' ? 7 : 3,
+    bearish_signals: bias === 'BEARISH' ? 6 : 2,
+    positive_global: bias === 'BULLISH' ? 6 : 3,
+    news_scanned: news.length,
+    global_markets: [],
+    news_items: news.map(n => ({ source: n.source || 'news', headline: n.headline || n.summary || '', impact: 'NEUTRAL' })),
+    analysis_text: analysisText,
+    strategy: `Sample strategy based on live snapshot. Treat as demo only.`
+  };
+}
+
+// ═══════════════════════════════════════════
 // MAIN ANALYSIS FUNCTION
 // ═══════════════════════════════════════════
 async function runAnalysis() {
@@ -1328,18 +1419,38 @@ async function runAnalysis() {
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' });
 
-  await new Promise((resolve) => setTimeout(resolve, 3600));
+  // Try live data if user enabled it, otherwise fall back to local simulation
+  const useLive = document.getElementById('liveToggle') && document.getElementById('liveToggle').checked;
+
+  if (useLive) {
+    try {
+      document.getElementById('think-status').textContent = 'Fetching live market data...';
+      const live = await fetchLiveMarketData();
+      const news = await fetchLiveNews();
+      const forecast = generateForecastFromLive({ live, news });
+      populateForecast(forecast);
+      output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+    } catch (err) {
+      output.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:11px">Live fetch failed: ${err.message}\n\nFalling back to local simulation.</span>`;
+      const forecast = generateLocalForecast();
+      populateForecast(forecast);
+      output.innerHTML += `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+    }
+  } else {
+    await new Promise((resolve) => setTimeout(resolve, 3600));
+    clearInterval(statusInterval);
+
+    const forecast = generateLocalForecast();
+    populateForecast(forecast);
+
+    output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+  }
+
   clearInterval(statusInterval);
-
-  const forecast = generateLocalForecast();
-  populateForecast(forecast);
-
-  output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
-
   thinking.classList.remove('show');
   btn.disabled = false;
   btn.innerHTML = '<span class="btn-icon">🔮</span> RUN MARKET ANALYSIS — LIVE FORECAST';
-  document.getElementById('think-status').textContent = 'Simulation complete.';
+  document.getElementById('think-status').textContent = useLive ? 'Live fetch complete.' : 'Simulation complete.';
 }
 
 function generateLocalForecast() {
