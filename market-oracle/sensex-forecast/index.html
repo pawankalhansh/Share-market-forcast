@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Oracle — Sensex & Nifty AI Forecaster</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0f;
+    --surface: #0b1520;
+    --surface2: #0f1d2e;
+    --border: #1a3050;
+    --green: #00e676;
+    --green-dim: #00b85a;
+    --red: #ff1744;
+    --red-dim: #c0002a;
+    --amber: #ffab00;
+    --blue: #00b0ff;
+    --purple: #7c4dff;
+    --text: #e0eeff;
+    --text-dim: #6b8aaa;
+    --text-muted: #3a5470;
+    --mono: 'Space Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+    --body: 'DM Sans', sans-serif;
+    --glow-green: 0 0 20px rgba(0,230,118,0.3);
+    --glow-red: 0 0 20px rgba(255,23,68,0.3);
+    --glow-amber: 0 0 20px rgba(255,171,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(0,176,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(124,77,255,0.04) 0%, transparent 50%);
+  }
+
+  /* Scanlines effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px);
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11,21,32,0.95);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-family: var(--display);
+    font-size: 26px;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--text));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: -4px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+    box-shadow: var(--glow-green);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .current-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Ticker */
+  .ticker-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-label {
+    background: var(--blue);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 0 12px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .ticker-scroll {
+    display: flex;
+    animation: ticker 40s linear infinite;
+    white-space: nowrap;
+  }
+
+  .ticker-item {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+  }
+
+  .ticker-item .name { color: var(--text); }
+  .ticker-item .up { color: var(--green); }
+  .ticker-item .dn { color: var(--red); }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Main Grid */
+  .main {
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 360px;
+    grid-template-rows: auto auto auto;
+    gap: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    opacity: 0.4;
+  }
+
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+
+  /* Forecast Cards */
+  .forecast-card {
+    grid-column: span 1;
+  }
+
+  .forecast-body {
+    padding: 20px;
+  }
+
+  .index-name {
+    font-family: var(--display);
+    font-size: 38px;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .index-name.sensex { color: var(--amber); }
+  .index-name.nifty { color: var(--blue); }
+
+  .current-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    margin-bottom: 20px;
+  }
+
+  .forecast-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .f-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .f-box.up { border-color: rgba(0,230,118,0.3); }
+  .f-box.dn { border-color: rgba(255,23,68,0.3); }
+
+  .f-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+  }
+  .f-box.up::after { background: var(--green); }
+  .f-box.dn::after { background: var(--red); }
+
+  .f-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .f-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .f-val.up { color: var(--green); text-shadow: var(--glow-green); }
+  .f-val.dn { color: var(--red); text-shadow: var(--glow-red); }
+
+  .f-pct {
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.7;
+  }
+
+  /* Confidence Bar */
+  .confidence-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .conf-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .conf-val {
+    color: var(--amber);
+    font-size: 11px;
+  }
+
+  .conf-bar-wrap {
+    background: var(--bg);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .conf-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--amber), var(--green));
+    transition: width 1s ease;
+    box-shadow: 0 0 10px rgba(255,171,0,0.4);
+  }
+
+  /* Sentiment Gauge */
+  .sentiment-box {
+    text-align: center;
+    padding: 20px;
+  }
+
+  .gauge-wrap {
+    position: relative;
+    width: 180px;
+    height: 100px;
+    margin: 0 auto 16px;
+  }
+
+  .gauge-svg { width: 100%; height: 100%; }
+
+  .gauge-needle {
+    transform-origin: 90px 90px;
+    transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .sentiment-label {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+
+  .sentiment-score {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Global Markets Table */
+  .markets-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .markets-table th {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    text-align: left;
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .markets-table td {
+    padding: 10px 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    border-bottom: 1px solid rgba(26,48,80,0.5);
+  }
+
+  .markets-table tr:last-child td { border-bottom: none; }
+
+  .markets-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .market-name { color: var(--text); font-weight: bold; }
+  .market-country { color: var(--text-muted); font-size: 9px; }
+  .val-up { color: var(--green); }
+  .val-dn { color: var(--red); }
+  .val-neu { color: var(--text-dim); }
+
+  /* AI Analysis Panel */
+  .ai-panel {
+    grid-column: span 3;
+  }
+
+  .ai-body {
+    padding: 0;
+  }
+
+  .ai-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .ai-tab {
+    padding: 12px 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .ai-tab:hover { color: var(--text-dim); }
+  .ai-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .ai-content {
+    padding: 20px;
+    min-height: 200px;
+  }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* AI Output */
+  .ai-output {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.9;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+  }
+
+  .ai-output .highlight { color: var(--green); font-weight: bold; }
+  .ai-output .warning { color: var(--amber); }
+  .ai-output .danger { color: var(--red); }
+  .ai-output .accent { color: var(--blue); }
+
+  /* News Grid */
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .news-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .news-card:hover {
+    border-color: var(--blue);
+    transform: translateY(-2px);
+  }
+
+  .news-source {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--blue);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .news-headline {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .news-impact {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .impact-bull { background: rgba(0,230,118,0.1); color: var(--green); }
+  .impact-bear { background: rgba(255,23,68,0.1); color: var(--red); }
+  .impact-neu { background: rgba(107,138,170,0.1); color: var(--text-dim); }
+
+  /* FnO Levels */
+  .fno-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .fno-section { }
+  .fno-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .level-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(26,48,80,0.4);
+  }
+
+  .level-type {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .level-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: bold;
+  }
+
+  .level-call { color: var(--green); }
+  .level-put { color: var(--red); }
+  .level-target { color: var(--amber); }
+  .level-sl { color: var(--purple); }
+
+  /* Analyze Button */
+  .analyze-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #0a1f35, #0f2a48);
+    border: 1px solid var(--blue);
+    border-radius: 8px;
+    color: var(--blue);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    width: 100%;
+    margin: 16px 0 0;
+    box-shadow: 0 0 30px rgba(0,176,255,0.1);
+  }
+
+  .analyze-btn:hover {
+    background: linear-gradient(135deg, #0d2a45, #1a3d60);
+    box-shadow: 0 0 30px rgba(0,176,255,0.25);
+    transform: translateY(-1px);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-icon { font-size: 16px; }
+
+  /* Loading */
+  .thinking {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--blue);
+  }
+
+  .thinking.show { display: flex; }
+
+  .think-dots {
+    display: flex;
+    gap: 4px;
+  }
+
+  .think-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue);
+    animation: think 1.4s infinite ease-in-out;
+  }
+
+  .think-dot:nth-child(2) { animation-delay: 0.2s; }
+  .think-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes think {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Sidebar */
+  .sidebar {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Stats row */
+  .stats-row {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.s1::before { background: var(--green); }
+  .stat-card.s2::before { background: var(--red); }
+  .stat-card.s3::before { background: var(--amber); }
+  .stat-card.s4::before { background: var(--blue); }
+
+  .stat-icon { font-size: 20px; margin-bottom: 10px; }
+  .stat-val {
+    font-family: var(--display);
+    font-size: 30px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .stat-val.up { color: var(--green); }
+  .stat-val.dn { color: var(--red); }
+  .stat-val.am { color: var(--amber); }
+  .stat-val.bl { color: var(--blue); }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* Typewriter */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 13px;
+    background: var(--blue);
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 1s infinite;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* mini chart bars */
+  .mini-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 32px;
+    margin-top: 8px;
+  }
+
+  .bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    background: var(--border);
+    transition: height 0.5s ease;
+  }
+
+  .bar.up { background: var(--green-dim); }
+  .bar.dn { background: var(--red-dim); }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .main {
+      grid-template-columns: 1fr 1fr;
+    }
+    .sidebar { grid-column: span 2; grid-row: auto; }
+    .ai-panel { grid-column: span 2; }
+    .stats-row { grid-column: span 2; }
+    .news-grid { grid-template-columns: repeat(2,1fr); }
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(0,176,255,0.1);
+    color: var(--blue);
+    letter-spacing: 1px;
+  }
+
+  .tag.bull { background: rgba(0,230,118,0.1); color: var(--green); }
+  .tag.bear { background: rgba(255,23,68,0.1); color: var(--red); }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 14px 0;
+  }
+
+  .footer-bar {
+    margin-top: 20px;
+    padding: 14px 28px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    <div>
+      <div class="logo-text">MARKET ORACLE</div>
+      <div class="logo-sub">AI-Powered Indian Market Forecaster</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      AI ENGINE ONLINE
+    </div>
+    <div class="current-time" id="clock">--:--:-- IST</div>
+  </div>
+</header>
+
+<!-- Ticker -->
+<div class="ticker-wrap">
+  <div class="ticker-label">GLOBAL PULSE</div>
+  <div style="overflow:hidden;flex:1;">
+    <div class="ticker-scroll" id="ticker"></div>
+  </div>
+</div>
+
+<!-- Main Grid -->
+<div class="main">
+
+  <!-- Sensex Forecast Card -->
+  <div class="panel forecast-card" id="sensex-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="dot" style="background:var(--amber)"></span>
+        BSE SENSEX — KAL KA FORECAST
+      </div>
+      <div class="tag" id="sensex-tag">ANALYZING...</div>
+    </div>
+    <div class="forecast-body">
+      <div class="index-name sensex">SENSEX</div>
+      <div class="current-val" id="sensex-current">Current: Loading...</div>
+
+      <div class="forecast-row">
+        <div class="f-box up">
+          <div class="f-label">▲ UPSIDE TARGET</div>
+          <div class="f-val up" id="s-up">--</div>
+          <div class="f-pct up" id="s-up-pct">+0.00%</div>
+        </div>
+        <div class="f-box dn">
+          <div class="f-label">▼ DOWNSIDE RISK</div>
+          <div class="f-val dn" id="s-dn">--</div>
+          <div class="f-pct dn" id="s-dn-pct">-0.00%</div>
+        </div>
+      </div>
+
+      <div class="forecast-row">
+        <div class="f-box" style="border-color:rgba(255,171,0,0.3)">
+          <div class="f-label" style="color:var(--amber)">🎯 STRONG RES.</div>
+          <div class="f-val" style="color:var(--amber)" id="s-res">--</div>
+        </div>
+        <div class="f-box" style="border-color:rgba(124,77,255,0.3)">
+          <div class="f-label" style="color:var(--purple)">🛡 STRONG SUP.</div>
+          <div class="f-val" style="color:var(--purple)" id="s-sup">--</div>
+        </div>
+      </div>
+
+      <div class="confidence-section">
+        <div class="conf-label">
+          <span>CONFIDENCE SCORE</span>
+          <span class="conf-val" id="s-conf">--%</span>
+        </div>
+        <div class="conf-bar-wrap">
+          <div class="conf-bar" id="s-conf-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="mini-chart" id="s-chart"></div>
+    </div>
+  </div>
+
+  <!-- Nifty Forecast Card -->
+  <div class="panel forecast-card" id="nifty-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="dot" style="background:var(--blue)"></span>
+        NSE NIFTY 50 — KAL KA FORECAST
+      </div>
+      <div class="tag" id="nifty-tag">ANALYZING...</div>
+    </div>
+    <div class="forecast-body">
+      <div class="index-name nifty">NIFTY 50</div>
+      <div class="current-val" id="nifty-current">Current: Loading...</div>
+
+      <div class="forecast-row">
+        <div class="f-box up">
+          <div class="f-label">▲ UPSIDE TARGET</div>
+          <div class="f-val up" id="n-up">--</div>
+          <div class="f-pct up" id="n-up-pct">+0.00%</div>
+        </div>
+        <div class="f-box dn">
+          <div class="f-label">▼ DOWNSIDE RISK</div>
+          <div class="f-val dn" id="n-dn">--</div>
+          <div class="f-pct dn" id="n-dn-pct">-0.00%</div>
+        </div>
+      </div>
+
+      <div class="forecast-row">
+        <div class="f-box" style="border-color:rgba(255,171,0,0.3)">
+          <div class="f-label" style="color:var(--amber)">🎯 STRONG RES.</div>
+          <div class="f-val" style="color:var(--amber)" id="n-res">--</div>
+        </div>
+        <div class="f-box" style="border-color:rgba(124,77,255,0.3)">
+          <div class="f-label" style="color:var(--purple)">🛡 STRONG SUP.</div>
+          <div class="f-val" style="color:var(--purple)" id="n-sup">--</div>
+        </div>
+      </div>
+
+      <div class="confidence-section">
+        <div class="conf-label">
+          <span>CONFIDENCE SCORE</span>
+          <span class="conf-val" id="n-conf">--%</span>
+        </div>
+        <div class="conf-bar-wrap">
+          <div class="conf-bar" id="n-conf-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="mini-chart" id="n-chart"></div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <!-- Sentiment Gauge -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><span class="dot"></span>MARKET SENTIMENT</div>
+        <div class="tag" id="sent-tag">NEUTRAL</div>
+      </div>
+      <div class="sentiment-box">
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" viewBox="0 0 180 100">
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ff1744"/>
+                <stop offset="50%" stop-color="#ffab00"/>
+                <stop offset="100%" stop-color="#00e676"/>
+              </linearGradient>
+            </defs>
+            <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="rgba(26,48,80,0.8)" stroke-width="14" stroke-linecap="round"/>
+            <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="220" stroke-dashoffset="0" opacity="0.9"/>
+            <line id="needle" x1="90" y1="90" x2="90" y2="28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="90" cy="90" r="5" fill="white"/>
+          </svg>
+        </div>
+        <div class="sentiment-label" id="sent-label" style="color:var(--text-dim)">LOADING...</div>
+        <div class="sentiment-score" id="sent-score">Score: --/100</div>
+      </div>
+    </div>
+
+    <!-- Global Markets -->
+    <div class="panel" style="flex:1">
+      <div class="panel-header">
+        <div class="panel-title"><span class="dot" style="background:var(--purple)"></span>GLOBAL MARKETS STATUS</div>
+      </div>
+      <table class="markets-table" id="markets-table">
+        <thead>
+          <tr>
+            <th>Market</th>
+            <th>Change</th>
+            <th>Impact</th>
+          </tr>
+        </thead>
+        <tbody id="markets-body">
+          <tr><td colspan="3" style="text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:10px;padding:20px">Click "Run AI Analysis" to load...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card s1">
+      <div class="stat-icon">📈</div>
+      <div class="stat-val up" id="stat-bull">--</div>
+      <div class="stat-label">Bullish Signals</div>
+    </div>
+    <div class="stat-card s2">
+      <div class="stat-icon">📉</div>
+      <div class="stat-val dn" id="stat-bear">--</div>
+      <div class="stat-label">Bearish Signals</div>
+    </div>
+    <div class="stat-card s3">
+      <div class="stat-icon">🌏</div>
+      <div class="stat-val am" id="stat-global">--</div>
+      <div class="stat-label">Global Mkts Positive</div>
+    </div>
+    <div class="stat-card s4">
+      <div class="stat-icon">🗞️</div>
+      <div class="stat-val bl" id="stat-news">--</div>
+      <div class="stat-label">News Sources Scanned</div>
+    </div>
+  </div>
+
+  <!-- AI Analysis Panel -->
+  <div class="panel ai-panel">
+    <div class="panel-header">
+      <div class="panel-title"><span class="dot" style="background:var(--green)"></span>AI ANALYSIS ENGINE — LOCAL FORECAST SIMULATION</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="tag">v2.0 LIVE</div>
+      </div>
+    </div>
+
+    <div class="ai-tabs">
+      <button class="ai-tab active" onclick="switchTab('analysis')">🧠 AI ANALYSIS</button>
+      <button class="ai-tab" onclick="switchTab('fno')">📊 F&O LEVELS</button>
+      <button class="ai-tab" onclick="switchTab('news')">🌐 NEWS IMPACT</button>
+      <button class="ai-tab" onclick="switchTab('strategy')">🎯 TRADING STRATEGY</button>
+    </div>
+
+    <div class="ai-body">
+      <div id="thinking" class="thinking" style="padding:20px">
+        <div class="think-dots">
+          <div class="think-dot"></div>
+          <div class="think-dot"></div>
+          <div class="think-dot"></div>
+        </div>
+        <span id="think-status">AI analyzing global markets and news...</span>
+      </div>
+
+      <div class="ai-content">
+        <div id="tab-analysis" class="tab-pane active">
+          <div class="ai-output" id="analysis-output">
+<span style="color:var(--text-muted)">╔══════════════════════════════════════════╗
+║     MARKET ORACLE — FORECAST SIMULATOR   ║
+║          Local market logic, no API      ║
+╚══════════════════════════════════════════╝
+
+▶ Click "RUN AI ANALYSIS" button below to:
+  → Simulate market cues from global data
+  → Generate a sample Sensex & Nifty outlook
+  → Show F&O levels, news impact, and strategy
+
+System uses local forecast logic so the page works
+offline on GitHub Pages without external Claude calls.
+
+ℹ️  The output is an illustrative simulation for demo use only.</span>
+          </div>
+        </div>
+
+        <div id="tab-fno" class="tab-pane">
+          <div class="fno-grid" id="fno-content">
+            <div style="grid-column:span 2;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;padding:40px 0">
+              Run AI Analysis to see F&O levels...
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-news" class="tab-pane">
+          <div class="news-grid" id="news-grid">
+            <div style="grid-column:span 3;text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:11px;padding:40px 0">
+              Run AI Analysis to load news impact...
+            </div>
+          </div>
+        </div>
+
+        <div id="tab-strategy" class="tab-pane">
+          <div class="ai-output" id="strategy-output">
+            <span style="color:var(--text-muted)">Run AI Analysis to get trading strategy...</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 0 20px 20px">
+        <div style="text-align:center;margin-bottom:8px;">
+          <label style="color:var(--text-muted);font-family:var(--mono);font-size:12px;"><input type="checkbox" id="liveToggle" checked style="margin-right:8px"> Use Live Data (Finnhub)</label>
+        </div>
+        <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+          <span class="btn-icon">🔮</span>
+          RUN AI ANALYSIS — LIVE MARKET FORECAST
+        </button>
+        <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--text-muted);margin-top:10px;letter-spacing:1px">
+          ⚠️ DISCLAIMER: Simulation-based forecast | Not SEBI-registered investment advice | Trade at your own risk
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer-bar">
+  <span>MARKET ORACLE © 2025 | AI-Powered Forecasting | Local Simulation</span>
+  <span id="last-updated">Last Updated: Never</span>
+  <span>FOR EDUCATIONAL PURPOSE ONLY | NOT INVESTMENT ADVICE</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const h = String(ist.getHours()).padStart(2,'0');
+  const m = String(ist.getMinutes()).padStart(2,'0');
+  const s = String(ist.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s} IST`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════════════════════════════════════
+// TICKER DATA
+// ═══════════════════════════════════════════
+const tickerData = [
+  { name: 'SENSEX', val: '82,948', chg: '+0.45%', up: true },
+  { name: 'NIFTY 50', val: '25,217', chg: '+0.38%', up: true },
+  { name: 'BANK NIFTY', val: '54,186', chg: '-0.12%', up: false },
+  { name: 'DOW JONES', val: '43,828', chg: '+0.28%', up: true },
+  { name: 'S&P 500', val: '5,958', chg: '+0.41%', up: true },
+  { name: 'NASDAQ', val: '19,310', chg: '+0.55%', up: true },
+  { name: 'NIKKEI 225', val: '38,236', chg: '-0.63%', up: false },
+  { name: 'HANG SENG', val: '21,847', chg: '+1.12%', up: true },
+  { name: 'SGX NIFTY', val: '25,289', chg: '+0.28%', up: true },
+  { name: 'CRUDE OIL', val: '$74.82', chg: '-0.92%', up: false },
+  { name: 'GOLD', val: '₹75,420', chg: '+0.31%', up: true },
+  { name: 'USD/INR', val: '83.94', chg: '-0.08%', up: false },
+  { name: 'FTSE 100', val: '8,312', chg: '+0.22%', up: true },
+  { name: 'DAX', val: '19,884', chg: '+0.67%', up: true },
+  { name: 'VIX INDIA', val: '14.32', chg: '-3.21%', up: false },
+];
+
+function buildTicker() {
+  const items = [...tickerData, ...tickerData];
+  const html = items.map(d =>
+    `<span class="ticker-item">
+      <span class="name">${d.name}</span>
+      <span>${d.val}</span>
+      <span class="${d.up ? 'up' : 'dn'}">${d.up ? '▲' : '▼'} ${d.chg}</span>
+    </span>`
+  ).join('');
+  document.getElementById('ticker').innerHTML = html;
+}
+buildTicker();
+
+// ═══════════════════════════════════════════
+// TAB SWITCHER
+// ═══════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.ai-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// MINI CHART GENERATOR
+// ═══════════════════════════════════════════
+function buildMiniChart(id, direction) {
+  const el = document.getElementById(id);
+  const bars = [];
+  for (let i = 0; i < 14; i++) {
+    const h = 8 + Math.random() * 22;
+    const isUp = direction === 'bull' ? Math.random() > 0.3 : Math.random() > 0.7;
+    bars.push(`<div class="bar ${isUp ? 'up' : 'dn'}" style="height:${h}px"></div>`);
+  }
+  el.innerHTML = bars.join('');
+}
+
+// ═══════════════════════════════════════════
+// GAUGE NEEDLE
+// ═══════════════════════════════════════════
+function setGauge(score) {
+  // score: 0-100, 50=neutral
+  const angle = (score / 100) * 180 - 90; // -90 to 90
+  const rad = (angle * Math.PI) / 180;
+  const cx = 90, cy = 90, len = 62;
+  const x2 = cx + Math.sin(rad) * -len;
+  const y2 = cy - Math.cos(rad) * len;
+  document.getElementById('needle').setAttribute('x2', x2.toFixed(1));
+  document.getElementById('needle').setAttribute('y2', y2.toFixed(1));
+
+  let label, color;
+  if (score >= 70) { label = 'BULLISH 🐂'; color = 'var(--green)'; }
+  else if (score >= 55) { label = 'MILD BULL 📈'; color = 'var(--green-dim)'; }
+  else if (score >= 45) { label = 'NEUTRAL ↔️'; color = 'var(--amber)'; }
+  else if (score >= 30) { label = 'MILD BEAR 📉'; color = 'var(--red-dim)'; }
+  else { label = 'BEARISH 🐻'; color = 'var(--red)'; }
+
+  document.getElementById('sent-label').textContent = label;
+  document.getElementById('sent-label').style.color = color;
+  document.getElementById('sent-score').textContent = `Score: ${score}/100`;
+
+  const tag = document.getElementById('sent-tag');
+  tag.textContent = score >= 55 ? 'BULLISH' : score >= 45 ? 'NEUTRAL' : 'BEARISH';
+  tag.className = 'tag ' + (score >= 55 ? 'bull' : score >= 45 ? '' : 'bear');
+}
+
+// ═══════════════════════════════════════════
+// POPULATE FORECAST DATA
+// ═══════════════════════════════════════════
+function populateForecast(data) {
+  // Sensex
+  const sc = data.sensex_current;
+  document.getElementById('sensex-current').textContent = `Current: ₹${sc.toLocaleString('en-IN')}`;
+  document.getElementById('s-up').textContent = `₹${data.sensex_upside.toLocaleString('en-IN')}`;
+  document.getElementById('s-dn').textContent = `₹${data.sensex_downside.toLocaleString('en-IN')}`;
+  const supPct = (((data.sensex_upside - sc)/sc)*100).toFixed(2);
+  const sdnPct = (((data.sensex_downside - sc)/sc)*100).toFixed(2);
+  document.getElementById('s-up-pct').textContent = `+${supPct}%`;
+  document.getElementById('s-dn-pct').textContent = `${sdnPct}%`;
+  document.getElementById('s-res').textContent = `₹${data.sensex_resistance.toLocaleString('en-IN')}`;
+  document.getElementById('s-sup').textContent = `₹${data.sensex_support.toLocaleString('en-IN')}`;
+  document.getElementById('s-conf').textContent = data.sensex_confidence + '%';
+  document.getElementById('s-conf-bar').style.width = data.sensex_confidence + '%';
+  const stag = document.getElementById('sensex-tag');
+  stag.textContent = data.sensex_bias;
+  stag.className = 'tag ' + (data.sensex_bias === 'BULLISH' ? 'bull' : data.sensex_bias === 'BEARISH' ? 'bear' : '');
+  buildMiniChart('s-chart', data.sensex_bias === 'BULLISH' ? 'bull' : 'bear');
+
+  // Nifty
+  const nc = data.nifty_current;
+  document.getElementById('nifty-current').textContent = `Current: ₹${nc.toLocaleString('en-IN')}`;
+  document.getElementById('n-up').textContent = `₹${data.nifty_upside.toLocaleString('en-IN')}`;
+  document.getElementById('n-dn').textContent = `₹${data.nifty_downside.toLocaleString('en-IN')}`;
+  const nupPct = (((data.nifty_upside - nc)/nc)*100).toFixed(2);
+  const ndnPct = (((data.nifty_downside - nc)/nc)*100).toFixed(2);
+  document.getElementById('n-up-pct').textContent = `+${nupPct}%`;
+  document.getElementById('n-dn-pct').textContent = `${ndnPct}%`;
+  document.getElementById('n-res').textContent = `₹${data.nifty_resistance.toLocaleString('en-IN')}`;
+  document.getElementById('n-sup').textContent = `₹${data.nifty_support.toLocaleString('en-IN')}`;
+  document.getElementById('n-conf').textContent = data.nifty_confidence + '%';
+  document.getElementById('n-conf-bar').style.width = data.nifty_confidence + '%';
+  const ntag = document.getElementById('nifty-tag');
+  ntag.textContent = data.nifty_bias;
+  ntag.className = 'tag ' + (data.nifty_bias === 'BULLISH' ? 'bull' : data.nifty_bias === 'BEARISH' ? 'bear' : '');
+  buildMiniChart('n-chart', data.nifty_bias === 'BULLISH' ? 'bull' : 'bear');
+
+  // Sentiment
+  setGauge(data.sentiment_score);
+
+  // Stats
+  document.getElementById('stat-bull').textContent = data.bullish_signals;
+  document.getElementById('stat-bear').textContent = data.bearish_signals;
+  document.getElementById('stat-global').textContent = data.positive_global + '/10';
+  document.getElementById('stat-news').textContent = data.news_scanned + '+';
+
+  // Global Markets Table
+  const tbody = document.getElementById('markets-body');
+  tbody.innerHTML = data.global_markets.map(m => `
+    <tr>
+      <td><div class="market-name">${m.name}</div><div class="market-country">${m.country}</div></td>
+      <td class="${m.change >= 0 ? 'val-up' : 'val-dn'}">${m.change >= 0 ? '▲' : '▼'} ${Math.abs(m.change)}%</td>
+      <td><span class="tag ${m.impact === 'BULLISH' ? 'bull' : m.impact === 'BEARISH' ? 'bear' : ''}" style="font-size:8px">${m.impact}</span></td>
+    </tr>
+  `).join('');
+
+  // F&O Levels
+  document.getElementById('fno-content').innerHTML = `
+    <div class="fno-section">
+      <div class="fno-title">NIFTY F&O LEVELS</div>
+      <div class="level-row"><span class="level-type">CALL Resistance</span><span class="level-val level-call">${data.nifty_call_resistance}</span></div>
+      <div class="level-row"><span class="level-type">Max Pain</span><span class="level-val level-target">${data.nifty_max_pain}</span></div>
+      <div class="level-row"><span class="level-type">PUT Support</span><span class="level-val level-put">${data.nifty_put_support}</span></div>
+      <div class="level-row"><span class="level-type">BUY Above</span><span class="level-val level-call">${data.nifty_buy_above}</span></div>
+      <div class="level-row"><span class="level-type">SELL Below</span><span class="level-val level-put">${data.nifty_sell_below}</span></div>
+      <div class="level-row"><span class="level-type">Stop Loss (Long)</span><span class="level-val level-sl">${data.nifty_sl_long}</span></div>
+      <div class="level-row"><span class="level-type">Stop Loss (Short)</span><span class="level-val level-sl">${data.nifty_sl_short}</span></div>
+    </div>
+    <div class="fno-section">
+      <div class="fno-title">SENSEX F&O LEVELS</div>
+      <div class="level-row"><span class="level-type">CALL Resistance</span><span class="level-val level-call">${data.sensex_call_resistance}</span></div>
+      <div class="level-row"><span class="level-type">Max Pain</span><span class="level-val level-target">${data.sensex_max_pain}</span></div>
+      <div class="level-row"><span class="level-type">PUT Support</span><span class="level-val level-put">${data.sensex_put_support}</span></div>
+      <div class="level-row"><span class="level-type">BUY Above</span><span class="level-val level-call">${data.sensex_buy_above}</span></div>
+      <div class="level-row"><span class="level-type">SELL Below</span><span class="level-val level-put">${data.sensex_sell_below}</span></div>
+      <div class="level-row"><span class="level-type">Stop Loss (Long)</span><span class="level-val level-sl">${data.sensex_sl_long}</span></div>
+      <div class="level-row"><span class="level-type">Stop Loss (Short)</span><span class="level-val level-sl">${data.sensex_sl_short}</span></div>
+    </div>
+  `;
+
+  // News
+  document.getElementById('news-grid').innerHTML = data.news_items.map(n => `
+    <div class="news-card">
+      <div class="news-source">${n.source}</div>
+      <div class="news-headline">${n.headline}</div>
+      <span class="news-impact impact-${n.impact.toLowerCase()}">${n.impact} FOR MARKET</span>
+    </div>
+  `).join('');
+
+  // Strategy
+  document.getElementById('strategy-output').innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${data.strategy}</pre>`;
+
+  document.getElementById('last-updated').textContent = 'Last Updated: ' + new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata'}) + ' IST';
+}
+
+// ═══════════════════════════════════════════
+// PARSE AI RESPONSE
+// ═══════════════════════════════════════════
+function parseAIResponse(text) {
+  try {
+    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) ||
+                      text.match(/\{[\s\S]*"sensex_current"[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[1] || jsonMatch[0]);
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════════
+// CONFIG: Server-side proxy settings
+// 1. Deploy the proxy server or function below.
+// 2. Replace the value of SERVER_PROXY_BASE with your deployed URL.
+// 3. If you run locally for testing, use http://localhost:4242
+const SERVER_PROXY_BASE = ''; // e.g. 'http://localhost:4242' or 'https://your-proxy.app'
+const USE_SERVER_PROXY = Boolean(SERVER_PROXY_BASE);
+
+// ═══════════════════════════════════════════
+// CONFIG: Finnhub API (only used for direct fetch fallback if proxy is unavailable)
+// WARNING: this key will be public in the static site; rotate if needed
+const FINNHUB_API_KEY = 'd846tjpr01qutij857lgd846tjpr01qutij857m0';
+
+// ═══════════════════════════════════════════
+// Live data helpers
+// ═══════════════════════════════════════════
+const TRY_SYMBOLS = ['NSEI','^NSEI','NSE:NIFTY','NIFTY','^BSESN','BSE:SENSEX','SGX:NIFTY','^NSEI.NS','^BSESN.BO'];
+
+async function fetchLiveMarketData() {
+  const trySymbols = TRY_SYMBOLS;
+  for (const sym of trySymbols) {
+    try {
+      if (USE_SERVER_PROXY) {
+        try {
+          const proxyUrl = `${SERVER_PROXY_BASE}/api/quote?symbol=${encodeURIComponent(sym)}`;
+          const pres = await fetch(proxyUrl);
+          if (pres && pres.ok) {
+            const pj = await pres.json();
+            window.__lastQuoteFetch = { symbol: sym, raw: pj, status: pres.status, path: 'server-proxy' };
+            const r = pj && pj.current ? pj : null;
+            if (r && (r.current || r.previousClose || r.regularMarketPrice || r.regularMarketPreviousClose)) return { symbol: sym, quote: r };
+          }
+        } catch (e) {
+          console.warn('Server proxy quote failed for', sym, e);
+        }
+      }
+
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}`;
+      try {
+        const res = await fetch(url);
+        if (res && res.ok) {
+          const j = await res.json();
+          window.__lastQuoteFetch = { symbol: sym, raw: j, status: res.status, path: 'yahoo-direct' };
+          const r = (j && j.quoteResponse && j.quoteResponse.result && j.quoteResponse.result[0]) || null;
+          if (r && (r.regularMarketPrice || r.regularMarketPreviousClose)) return { symbol: sym, quote: r };
+        }
+      } catch (e) {
+        // direct yahoo failed — will attempt proxy
+      }
+
+      try {
+        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const pres = await fetch(proxy);
+        if (pres && pres.ok) {
+          const pj = await pres.json();
+          window.__lastQuoteFetch = { symbol: sym, raw: pj, status: pres.status, path: 'yahoo-proxy' };
+          const r = (pj && pj.quoteResponse && pj.quoteResponse.result && pj.quoteResponse.result[0]) || null;
+          if (r && (r.regularMarketPrice || r.regularMarketPreviousClose)) return { symbol: sym, quote: r };
+        }
+      } catch (e) {
+        // proxy also failed — try next symbol
+      }
+    } catch (e) {
+      // try next symbol
+    }
+  }
+  throw new Error('No live quote available (CORS or symbol mismatch)');
+}
+
+// Normalize different quote shapes (Finnhub or Yahoo) into common fields
+function normalizeQuote(raw) {
+  if (!raw) return null;
+  // Finnhub-style
+  if (raw.c !== undefined || raw.pc !== undefined) {
+    return { current: raw.c || 0, prev: raw.pc || 0 };
+  }
+  // Yahoo-style
+  if (raw.regularMarketPrice !== undefined || raw.regularMarketPreviousClose !== undefined) {
+    return { current: raw.regularMarketPrice || 0, prev: raw.regularMarketPreviousClose || 0 };
+  }
+  // Fallback check common fields
+  if (raw.currentPrice !== undefined || raw.previousClose !== undefined) {
+    return { current: raw.currentPrice || 0, prev: raw.previousClose || 0 };
+  }
+  return { current: 0, prev: 0 };
+}
+
+async function fetchLiveNews() {
+  try {
+    if (USE_SERVER_PROXY) {
+      try {
+        const proxyUrl = `${SERVER_PROXY_BASE}/api/news`;
+        const pres = await fetch(proxyUrl);
+        if (pres && pres.ok) {
+          const pdata = await pres.json();
+          window.__lastFinnhubNews = { raw: pdata, status: pres.status, path: 'server-proxy' };
+          return Array.isArray(pdata) ? pdata.slice(0,6) : [];
+        }
+      } catch (e) {
+        console.warn('Server proxy news failed', e);
+      }
+    }
+
+    const url = `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`;
+    try {
+      const res = await fetch(url);
+      if (res && res.ok) {
+        const data = await res.json();
+        window.__lastFinnhubNews = { raw: data, status: res.status, path: 'direct' };
+        return Array.isArray(data) ? data.slice(0,6) : [];
+      }
+    } catch (e) {
+      // direct fetch failed, fall through to proxy
+    }
+
+    try {
+      const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      const pres = await fetch(proxy);
+      if (pres && pres.ok) {
+        const pdata = await pres.json();
+        window.__lastFinnhubNews = { raw: pdata, status: pres.status, path: 'proxy' };
+        return Array.isArray(pdata) ? pdata.slice(0,6) : [];
+      }
+    } catch (e) {
+      // proxy failed
+    }
+
+    throw new Error('News fetch failed (direct and proxy attempts)');
+  } catch (e) {
+    return [];
+  }
+}
+
+// Automated quick test helpers (direct vs proxy) to surface CORS/401/429 issues
+async function testFinnhubDirect(symbol) {
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
+  try {
+    const r = await fetch(url);
+    const text = await r.text();
+    let body = text;
+    try { body = JSON.parse(text); } catch(e) {}
+    return { path: 'direct', status: r.status, body };
+  } catch (err) {
+    return { path: 'direct', error: String(err) };
+  }
+}
+
+async function testFinnhubProxy(symbol) {
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
+  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  try {
+    const r = await fetch(proxy);
+    const text = await r.text();
+    let body = text;
+    try { body = JSON.parse(text); } catch(e) {}
+    return { path: 'proxy', status: r.status, body };
+  } catch (err) {
+    return { path: 'proxy', error: String(err) };
+  }
+}
+
+function generateForecastFromLive({ live, news }) {
+  const q = live.quote;
+  const norm = normalizeQuote(q);
+  const current = Math.round(norm.current || 0);
+  const prev = Math.round(norm.prev || 0) || current;
+  const changePct = prev ? Math.round(((current - prev) / prev) * 10000) / 100 : 0;
+  const bias = changePct >= 0.3 ? 'BULLISH' : changePct <= -0.3 ? 'BEARISH' : 'NEUTRAL';
+
+  const upside = Math.round(current * (1 + 0.008 + Math.abs(changePct) / 100));
+  const downside = Math.round(current * (1 - 0.008 - Math.abs(changePct) / 200));
+
+  const analysisText = `Live Market Snapshot (${live.symbol}): current ${current}, previous close ${prev}, change ${changePct}%\nTop headlines:\n` +
+    (news.length ? news.map(n => `- ${n.headline || n.summary || n.source}`).join('\n') : '- No headlines');
+
+  return {
+    sensex_current: current,
+    sensex_upside: upside,
+    sensex_downside: downside,
+    sensex_resistance: upside + 150,
+    sensex_support: downside - 150,
+    sensex_confidence: Math.min(95, Math.max(40, 50 + Math.round(changePct * 2))),
+    sensex_bias: bias,
+    sensex_call_resistance: String(upside + 100),
+    sensex_put_support: String(downside - 100),
+    sensex_max_pain: String(Math.round((current + upside) / 2)),
+    sensex_buy_above: String(current + Math.round(current * 0.02)),
+    sensex_sell_below: String(current - Math.round(current * 0.02)),
+    sensex_sl_long: String(current - Math.round(current * 0.03)),
+    sensex_sl_short: String(current + Math.round(current * 0.03)),
+    nifty_current: current,
+    nifty_upside: upside,
+    nifty_downside: downside,
+    nifty_resistance: upside + 50,
+    nifty_support: downside - 50,
+    nifty_confidence: Math.min(95, Math.max(40, 50 + Math.round(changePct * 2) - 3)),
+    nifty_bias: bias,
+    nifty_call_resistance: String(upside + 40),
+    nifty_put_support: String(downside - 40),
+    nifty_max_pain: String(Math.round((current + upside) / 2)),
+    nifty_buy_above: String(current + Math.round(current * 0.01)),
+    nifty_sell_below: String(current - Math.round(current * 0.01)),
+    nifty_sl_long: String(current - Math.round(current * 0.012)),
+    nifty_sl_short: String(current + Math.round(current * 0.012)),
+    sentiment_score: 50 + Math.round(changePct * 2),
+    bullish_signals: bias === 'BULLISH' ? 7 : 3,
+    bearish_signals: bias === 'BEARISH' ? 6 : 2,
+    positive_global: bias === 'BULLISH' ? 6 : 3,
+    news_scanned: news.length,
+    global_markets: [],
+    news_items: news.map(n => ({ source: n.source || 'news', headline: n.headline || n.summary || '', impact: 'NEUTRAL' })),
+    analysis_text: analysisText,
+    strategy: `Sample strategy based on live snapshot. Treat as demo only.`
+  };
+}
+
+// ═══════════════════════════════════════════
+// MAIN ANALYSIS FUNCTION
+// ═══════════════════════════════════════════
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  const thinking = document.getElementById('thinking');
+  const output = document.getElementById('analysis-output');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon">⏳</span> ANALYZING GLOBAL MARKETS...';
+  thinking.classList.add('show');
+
+  const statuses = [
+    '🌐 Scanning global markets — Dow, S&P, Nasdaq...',
+    '🇯🇵 Checking Nikkei, SGX Nifty, Hang Seng...',
+    '📰 Analyzing financial news from Reuters, Bloomberg...',
+    '🇮🇳 Studying India-specific economic data...',
+    '📊 Calculating F&O support & resistance levels...',
+    '🔮 Generating AI forecast for tomorrow...',
+  ];
+  let si = 0;
+  const statusInterval = setInterval(() => {
+    if (si < statuses.length) {
+      document.getElementById('think-status').textContent = statuses[si++];
+    }
+  }, 3000);
+
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' });
+
+  // Try live data if user enabled it, otherwise fall back to local simulation
+  const useLive = document.getElementById('liveToggle') && document.getElementById('liveToggle').checked;
+
+  if (useLive) {
+    try {
+      document.getElementById('think-status').textContent = 'Fetching live market data...';
+      const live = await fetchLiveMarketData();
+      const news = await fetchLiveNews();
+      const forecast = generateForecastFromLive({ live, news });
+      populateForecast(forecast);
+      output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+      // Debug: show raw live response and news so we can inspect returned values
+      const debugPre = document.createElement('pre');
+      debugPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:12px;max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:8px';
+      const raw = { live: window.__lastFinnhubQuote || live, news };
+      debugPre.textContent = 'DEBUG — raw live data:\n' + JSON.stringify(raw, null, 2);
+      output.appendChild(debugPre);
+        // Run automated connectivity tests and show results
+        try {
+          const results = {};
+          for (const sym of TRY_SYMBOLS) {
+            const direct = await testFinnhubDirect(sym);
+            const proxy = await testFinnhubProxy(sym);
+            results[sym] = { direct, proxy };
+          }
+          const autoPre = document.createElement('pre');
+          autoPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:8px;max-height:360px;overflow:auto;border-top:1px dashed var(--border);padding-top:8px';
+          autoPre.textContent = 'AUTOTEST — Finnhub connectivity (symbols: ' + TRY_SYMBOLS.join(',') + ')\n' + JSON.stringify(results, null, 2);
+          output.appendChild(autoPre);
+        } catch (e) {
+          console.warn('Autotest error', e);
+        }
+    } catch (err) {
+      output.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:11px">Live fetch failed: ${err.message}\n\nFalling back to local simulation.</span>`;
+      // Run connectivity autotest (direct + proxy) and show results to help debug
+      try {
+        const sym = 'NSEI';
+        const directTest = await testFinnhubDirect(sym);
+        const proxyTest = await testFinnhubProxy(sym);
+        const testPre = document.createElement('pre');
+        testPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:8px;max-height:220px;overflow:auto;border-top:1px dashed var(--border);padding-top:8px';
+        testPre.textContent = 'AUTOTEST (after failure) — Finnhub connectivity (symbol: ' + sym + ')\n' + JSON.stringify({ direct: directTest, proxy: proxyTest }, null, 2);
+        output.appendChild(testPre);
+      } catch (e) {
+        console.warn('Autotest post-failure error', e);
+      }
+
+      const forecast = generateLocalForecast();
+      populateForecast(forecast);
+      output.innerHTML += `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+    }
+  } else {
+    await new Promise((resolve) => setTimeout(resolve, 3600));
+    clearInterval(statusInterval);
+
+    const forecast = generateLocalForecast();
+    populateForecast(forecast);
+
+    output.innerHTML = `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
+  }
+
+  clearInterval(statusInterval);
+  thinking.classList.remove('show');
+  btn.disabled = false;
+  btn.innerHTML = '<span class="btn-icon">🔮</span> RUN MARKET ANALYSIS — LIVE FORECAST';
+  document.getElementById('think-status').textContent = useLive ? 'Live fetch complete.' : 'Simulation complete.';
+}
+
+function generateLocalForecast() {
+  const baseSensex = 82948;
+  const baseNifty = 25217;
+  const drift = (Math.sin(Date.now() / 86400000) * 0.5 + 0.5) * 0.02;
+  const volatility = 0.006 + (Math.random() - 0.5) * 0.003;
+  const sentimentScore = Math.round(50 + drift * 100 + (Math.random() - 0.5) * 10);
+  const bias = sentimentScore >= 60 ? 'BULLISH' : sentimentScore >= 45 ? 'NEUTRAL' : 'BEARISH';
+
+  const sensexMove = Math.round(baseSensex * (0.004 + volatility * (bias === 'BULLISH' ? 1 : bias === 'BEARISH' ? -1 : 0.5)));
+  const niftyMove = Math.round(baseNifty * (0.004 + volatility * (bias === 'BULLISH' ? 1 : bias === 'BEARISH' ? -1 : 0.5)));
+
+  const sensexCurrent = baseSensex;
+  const niftyCurrent = baseNifty;
+  const sensexUpside = sensexCurrent + Math.abs(sensexMove * (bias === 'BEARISH' ? 0.8 : 1.1));
+  const sensexDownside = sensexCurrent - Math.abs(sensexMove * (bias === 'BULLISH' ? 0.8 : 1.1));
+  const niftyUpside = niftyCurrent + Math.abs(niftyMove * (bias === 'BEARISH' ? 0.8 : 1.1));
+  const niftyDownside = niftyCurrent - Math.abs(niftyMove * (bias === 'BULLISH' ? 0.8 : 1.1));
+
+  const globalMarkets = [
+    { name: 'DOW JONES', country: 'USA', change: 0.28, impact: 'BULLISH' },
+    { name: 'S&P 500', country: 'USA', change: 0.41, impact: 'BULLISH' },
+    { name: 'NASDAQ', country: 'USA', change: 0.55, impact: 'BULLISH' },
+    { name: 'NIKKEI 225', country: 'JAPAN', change: -0.63, impact: 'BEARISH' },
+    { name: 'HANG SENG', country: 'HONG KONG', change: 1.12, impact: 'BULLISH' },
+    { name: 'SGX NIFTY', country: 'SINGAPORE', change: bias === 'BULLISH' ? 0.28 : bias === 'BEARISH' ? -0.15 : 0.05, impact: bias === 'BULLISH' ? 'BULLISH' : bias === 'BEARISH' ? 'BEARISH' : 'NEUTRAL' },
+    { name: 'CRUDE OIL', country: 'GLOBAL', change: bias === 'BULLISH' ? -0.45 : 0.32, impact: bias === 'BULLISH' ? 'BULLISH' : 'BEARISH' },
+    { name: 'USD/INR', country: 'INDIA', change: bias === 'BULLISH' ? -0.12 : 0.15, impact: bias === 'BULLISH' ? 'BULLISH' : 'BEARISH' },
+  ];
+
+  const newsItems = [
+    { source: 'ET MARKETS', headline: 'Domestic markets remain steady ahead of expiry', impact: bias === 'BULLISH' ? 'BULLISH' : 'NEUTRAL' },
+    { source: 'REUTERS', headline: 'Global strength supports India equities', impact: bias === 'BULLISH' ? 'BULLISH' : 'NEUTRAL' },
+    { source: 'CNBC TV18', headline: 'Caution advised on crude and INR momentum', impact: bias === 'BEARISH' ? 'BEARISH' : 'NEUTRAL' },
+  ];
+
+  return {
+    sensex_current: sensexCurrent,
+    sensex_upside: sensexUpside,
+    sensex_downside: sensexDownside,
+    sensex_resistance: sensexUpside + 200,
+    sensex_support: sensexDownside - 200,
+    sensex_confidence: Math.min(95, Math.max(40, sentimentScore)),
+    sensex_bias: bias,
+    sensex_call_resistance: String(sensexUpside + 150),
+    sensex_put_support: String(sensexDownside - 150),
+    sensex_max_pain: String(Math.round((sensexCurrent + sensexUpside) / 2)),
+    sensex_buy_above: String(sensexCurrent + 160),
+    sensex_sell_below: String(sensexCurrent - 160),
+    sensex_sl_long: String(sensexCurrent - 200),
+    sensex_sl_short: String(sensexCurrent + 200),
+    nifty_current: niftyCurrent,
+    nifty_upside: niftyUpside,
+    nifty_downside: niftyDownside,
+    nifty_resistance: niftyUpside + 75,
+    nifty_support: niftyDownside - 75,
+    nifty_confidence: Math.min(95, Math.max(40, sentimentScore - 3)),
+    nifty_bias: bias,
+    nifty_call_resistance: String(niftyUpside + 70),
+    nifty_put_support: String(niftyDownside - 70),
+    nifty_max_pain: String(Math.round((niftyCurrent + niftyUpside) / 2)),
+    nifty_buy_above: String(niftyCurrent + 75),
+    nifty_sell_below: String(niftyCurrent - 75),
+    nifty_sl_long: String(niftyCurrent - 90),
+    nifty_sl_short: String(niftyCurrent + 90),
+    sentiment_score: sentimentScore,
+    bullish_signals: bias === 'BULLISH' ? 8 : bias === 'NEUTRAL' ? 5 : 3,
+    bearish_signals: bias === 'BEARISH' ? 7 : 2,
+    positive_global: bias === 'BULLISH' ? 7 : bias === 'BEARISH' ? 3 : 5,
+    news_scanned: 18,
+    global_markets: globalMarkets,
+    news_items: newsItems,
+    analysis_text: `MARKET ORACLE SIMULATION SUMMARY:\n\nThe market simulation shows a ${bias.toLowerCase()} stance for tomorrow based on current global cues and domestic momentum. SGX Nifty suggests a ${bias === 'BULLISH' ? 'positive' : bias === 'BEARISH' ? 'negative' : 'neutral'} opening, while INR and crude remain the key watch points. The forecast uses a sample technical range and F&O support/resistance levels to help visualise possible trade scenarios. Treat this output as a demo forecast rather than actual trading advice.`,
+    strategy: `NIFTY: BUY above ${niftyCurrent + 75} Target ${niftyUpside} / ${niftyUpside + 75} SL ${niftyCurrent - 75}. SELL below ${niftyCurrent - 75} Target ${niftyDownside} / ${niftyDownside - 75} SL ${niftyCurrent + 70}. SENSEX: BUY above ${sensexCurrent + 160} Target ${sensexUpside} / ${sensexUpside + 160} SL ${sensexCurrent - 160}. SELL below ${sensexCurrent - 160} Target ${sensexDownside} / ${sensexDownside - 160} SL ${sensexCurrent + 155}.`,
+  };
+}
+
+// Init
+buildMiniChart('s-chart', 'bull');
+buildMiniChart('n-chart', 'bull');
+setGauge(50);
+</script>
+</body>
+</html>
