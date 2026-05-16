@@ -1,27 +1,21 @@
-# Sensex Forecast Project
+# Market Oracle � Sensex & Nifty AI Forecaster
 
-A standalone Indian market forecast page for NIFTY and SENSEX.
-
-This repository contains a separate static project that is independent from any other calculator app.
+This repository publishes a standalone market forecast landing page under GitHub Pages.
 
 ## Files
-- `index.html` — main forecast page
-- `styles.css` — layout and design styles
-- `forecast.js` — forecast calculator logic
+- `index.html` � full static market oracle page
+- `styles.css` — extra style file (not used by `index.html`)
+- `README.md` � project description
 
-## How to use
-1. Open `index.html` in a browser.
-2. Choose the index: `NIFTY 50` or `SENSEX`.
-3. Select a forecast horizon.
-4. Enter the current index value.
-5. Pick a market sentiment and click `Generate Forecast`.
+## Usage
+Open `index.html` in a browser or visit the GitHub Pages site once deployed.
 
-## GitHub Pages
-This repository is ready to deploy from the `main` branch root.
+## Deployment
+This repo is configured to deploy from the `main` branch root. The page served will be:
 
-✅ Deployed site URL:
 - `https://pawankalhansh.github.io/Share-market-forcast/`
 
 ## Notes
-- This is a simple forecast estimate tool, not financial advice.
-- The project is intentionally kept separate from the existing `All_In_One_Calculator` app.
+- The page is a static HTML dashboard for Sensex and Nifty forecasting.
+- The `RUN AI ANALYSIS` button currently attempts to call an external Claude API endpoint. Without a proper API key and supported environment, it may show an error in GitHub Pages.
+- The visual layout and UI are based on your original `market-oracle` design.
