@@ -1380,6 +1380,34 @@ async function fetchLiveNews() {
   }
 }
 
+// Automated quick test helpers (direct vs proxy) to surface CORS/401/429 issues
+async function testFinnhubDirect(symbol) {
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
+  try {
+    const r = await fetch(url);
+    const text = await r.text();
+    let body = text;
+    try { body = JSON.parse(text); } catch(e) {}
+    return { path: 'direct', status: r.status, body };
+  } catch (err) {
+    return { path: 'direct', error: String(err) };
+  }
+}
+
+async function testFinnhubProxy(symbol) {
+  const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
+  const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  try {
+    const r = await fetch(proxy);
+    const text = await r.text();
+    let body = text;
+    try { body = JSON.parse(text); } catch(e) {}
+    return { path: 'proxy', status: r.status, body };
+  } catch (err) {
+    return { path: 'proxy', error: String(err) };
+  }
+}
+
 function generateForecastFromLive({ live, news }) {
   const q = live.quote;
   const current = Math.round(q.c || q.pc || 0);
@@ -1480,6 +1508,18 @@ async function runAnalysis() {
       const raw = { live: window.__lastFinnhubQuote || live, news };
       debugPre.textContent = 'DEBUG — raw live data:\n' + JSON.stringify(raw, null, 2);
       output.appendChild(debugPre);
+        // Run automated connectivity tests and show results
+        try {
+          const sym = 'NSEI';
+          const direct = await testFinnhubDirect(sym);
+          const prox = await testFinnhubProxy(sym);
+          const autoPre = document.createElement('pre');
+          autoPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:8px;max-height:220px;overflow:auto;border-top:1px dashed var(--border);padding-top:8px';
+          autoPre.textContent = 'AUTOTEST — Finnhub connectivity (symbol: ' + sym + ')\n' + JSON.stringify({ direct, proxy: prox }, null, 2);
+          output.appendChild(autoPre);
+        } catch (e) {
+          console.warn('Autotest error', e);
+        }
     } catch (err) {
       output.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:11px">Live fetch failed: ${err.message}\n\nFalling back to local simulation.</span>`;
       const forecast = generateLocalForecast();
