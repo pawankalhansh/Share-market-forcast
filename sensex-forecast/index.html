@@ -1303,22 +1303,43 @@ function parseAIResponse(text) {
 }
 
 // ═══════════════════════════════════════════
-// CONFIG: Finnhub API (paste your key here)
+// CONFIG: Server-side proxy settings
+// 1. Deploy the proxy server or function below.
+// 2. Replace the value of SERVER_PROXY_BASE with your deployed URL.
+// 3. If you run locally for testing, use http://localhost:4242
+const SERVER_PROXY_BASE = ''; // e.g. 'http://localhost:4242' or 'https://your-proxy.app'
+const USE_SERVER_PROXY = Boolean(SERVER_PROXY_BASE);
+
+// ═══════════════════════════════════════════
+// CONFIG: Finnhub API (only used for direct fetch fallback if proxy is unavailable)
 // WARNING: this key will be public in the static site; rotate if needed
 const FINNHUB_API_KEY = 'd846tjpr01qutij857lgd846tjpr01qutij857m0';
 
 // ═══════════════════════════════════════════
-// Live data helpers (Finnhub)
+// Live data helpers
 // ═══════════════════════════════════════════
 const TRY_SYMBOLS = ['NSEI','^NSEI','NSE:NIFTY','NIFTY','^BSESN','BSE:SENSEX','SGX:NIFTY','^NSEI.NS','^BSESN.BO'];
 
 async function fetchLiveMarketData() {
-  // Use Yahoo Finance quote API as primary live source (with proxy fallback)
   const trySymbols = TRY_SYMBOLS;
   for (const sym of trySymbols) {
     try {
+      if (USE_SERVER_PROXY) {
+        try {
+          const proxyUrl = `${SERVER_PROXY_BASE}/api/quote?symbol=${encodeURIComponent(sym)}`;
+          const pres = await fetch(proxyUrl);
+          if (pres && pres.ok) {
+            const pj = await pres.json();
+            window.__lastQuoteFetch = { symbol: sym, raw: pj, status: pres.status, path: 'server-proxy' };
+            const r = pj && pj.current ? pj : null;
+            if (r && (r.current || r.previousClose || r.regularMarketPrice || r.regularMarketPreviousClose)) return { symbol: sym, quote: r };
+          }
+        } catch (e) {
+          console.warn('Server proxy quote failed for', sym, e);
+        }
+      }
+
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}`;
-      // Try direct fetch first
       try {
         const res = await fetch(url);
         if (res && res.ok) {
@@ -1331,7 +1352,6 @@ async function fetchLiveMarketData() {
         // direct yahoo failed — will attempt proxy
       }
 
-      // Proxy fallback (AllOrigins)
       try {
         const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
         const pres = await fetch(proxy);
@@ -1371,6 +1391,20 @@ function normalizeQuote(raw) {
 
 async function fetchLiveNews() {
   try {
+    if (USE_SERVER_PROXY) {
+      try {
+        const proxyUrl = `${SERVER_PROXY_BASE}/api/news`;
+        const pres = await fetch(proxyUrl);
+        if (pres && pres.ok) {
+          const pdata = await pres.json();
+          window.__lastFinnhubNews = { raw: pdata, status: pres.status, path: 'server-proxy' };
+          return Array.isArray(pdata) ? pdata.slice(0,6) : [];
+        }
+      } catch (e) {
+        console.warn('Server proxy news failed', e);
+      }
+    }
+
     const url = `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`;
     try {
       const res = await fetch(url);
@@ -1383,7 +1417,6 @@ async function fetchLiveNews() {
       // direct fetch failed, fall through to proxy
     }
 
-    // Proxy fallback
     try {
       const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
       const pres = await fetch(proxy);

@@ -19,3 +19,4 @@ The published site should be:
 ## Notes
 - The page is a static HTML dashboard based on your original Market Oracle design.
 - The `RUN MARKET ANALYSIS` button now uses a local forecast simulation and does not require the Claude API.
+- For live market quotes and news, the page can use a server-side proxy at `SERVER_PROXY_BASE` to avoid browser CORS restrictions.
