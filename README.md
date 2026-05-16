@@ -1,19 +1,27 @@
 # Sensex Forecast Project
 
-A separate Indian market forecast page built as an independent static project.
+A standalone Indian market forecast page for NIFTY and SENSEX.
+
+This repository contains a separate static project that is independent from any other calculator app.
 
 ## Files
-- `index.html` — main page
-- `styles.css` — page styling
-- `forecast.js` — forecast logic
+- `index.html` — main forecast page
+- `styles.css` — layout and design styles
+- `forecast.js` — forecast calculator logic
 
-## Usage
-Open `index.html` in a browser to use the tool.
+## How to use
+1. Open `index.html` in a browser.
+2. Choose the index: `NIFTY 50` or `SENSEX`.
+3. Select a forecast horizon.
+4. Enter the current index value.
+5. Pick a market sentiment and click `Generate Forecast`.
 
-## Deploy
-To deploy this as a separate GitHub Pages project:
-1. Create a new GitHub repository (for example `Sensex-Forecast`).
-2. Push the `sensex-forecast` folder contents to that repo.
-3. Enable GitHub Pages from the repository settings.
+## GitHub Pages
+This repository is ready to deploy from the `main` branch root.
 
-The deployed page will be available at `https://<your-username>.github.io/<repo-name>/`.
+✅ Deployed site URL:
+- `https://pawankalhansh.github.io/Share-market-forcast/`
+
+## Notes
+- This is a simple forecast estimate tool, not financial advice.
+- The project is intentionally kept separate from the existing `All_In_One_Calculator` app.
