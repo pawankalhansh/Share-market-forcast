@@ -1,21 +1,21 @@
-# Market Oracle � Sensex & Nifty AI Forecaster
+﻿# Market Oracle — Sensex & Nifty AI Forecaster
 
-This repository publishes a standalone market forecast landing page under GitHub Pages.
+This repository contains the standalone Market Oracle landing page for Sensex and Nifty forecasting.
 
 ## Files
-- `index.html` � full static market oracle page
-- `styles.css` — extra style file (not used by `index.html`)
-- `README.md` � project description
+- `index.html` — full static Market Oracle page
+- `styles.css` — unused stylesheet (the page uses inline styles)
+- `README.md` — this project description
 
 ## Usage
-Open `index.html` in a browser or visit the GitHub Pages site once deployed.
+Open `index.html` in a browser to view the page.
 
 ## Deployment
-This repo is configured to deploy from the `main` branch root. The page served will be:
+This repo is configured for GitHub Pages from the `main` branch root.
 
+The published site should be:
 - `https://pawankalhansh.github.io/Share-market-forcast/`
 
 ## Notes
-- The page is a static HTML dashboard for Sensex and Nifty forecasting.
-- The `RUN AI ANALYSIS` button currently attempts to call an external Claude API endpoint. Without a proper API key and supported environment, it may show an error in GitHub Pages.
-- The visual layout and UI are based on your original `market-oracle` design.
+- The page is a static HTML dashboard based on your original Market Oracle design.
+- The `RUN AI ANALYSIS` button currently attempts to call an external Claude AI endpoint and may not work without backend support.
