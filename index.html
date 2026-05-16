@@ -90,9 +90,19 @@
     min-height: 100vh;
     overflow-x: hidden;
     background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(56,189,248,0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, rgba(167,139,250,0.06) 0%, transparent 50%);
-    transition: background 0.3s ease, color 0.3s ease;
+      radial-gradient(ellipse at 20% 0%, var(--bg-grad-1, rgba(56,189,248,0.06)) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, var(--bg-grad-2, rgba(167,139,250,0.06)) 0%, transparent 50%);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Theme-specific background gradients */
+  [data-theme="light"] body, [data-theme="light"] {
+    --bg-grad-1: rgba(212,160,80,0.06);
+    --bg-grad-2: rgba(100,80,160,0.05);
+  }
+  [data-theme="matrix"] body, [data-theme="matrix"] {
+    --bg-grad-1: rgba(0,255,65,0.04);
+    --bg-grad-2: rgba(0,200,50,0.03);
   }
 
   body::before {
@@ -202,6 +212,7 @@
   .markets-table { width: 100%; border-collapse: collapse; }
   .markets-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; text-align: left; padding: 8px 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
   .markets-table td { padding: 10px 18px; font-family: var(--mono); font-size: 11px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .market-price { font-weight: bold; font-size: 12px !important; color: var(--text) !important; }
   .markets-table tr:last-child td { border-bottom: none; }
   .markets-table tr:hover td { background: rgba(255,255,255,0.02); }
   .market-name { color: var(--text); font-weight: bold; }
@@ -983,7 +994,7 @@ function populateForecast(data) {
   tbody.innerHTML = data.global_markets.map(m => `
     <tr>
       <td><div class="market-name">${m.name}</div><div class="market-country">${m.country}</div></td>
-      <td style="font-family: var(--mono); font-weight: bold; font-size: 12px; color: #fff;">${m.val}</td>
+      <td class="market-price">${m.val}</td>
       <td class="${m.change >= 0 ? 'val-up' : 'val-dn'}">${m.change >= 0 ? '▲' : '▼'} ${Math.abs(m.change).toFixed(2)}%</td>
       <td><span class="tag ${m.impact === 'BULLISH' ? 'bull' : m.impact === 'BEARISH' ? 'bear' : ''}" style="font-size:8px">${m.impact}</span></td>
     </tr>
