@@ -1313,42 +1313,35 @@ const FINNHUB_API_KEY = 'd846tjpr01qutij857lgd846tjpr01qutij857m0';
 const TRY_SYMBOLS = ['NSEI','^NSEI','NSE:NIFTY','NIFTY','^BSESN','BSE:SENSEX','SGX:NIFTY','^NSEI.NS','^BSESN.BO'];
 
 async function fetchLiveMarketData() {
-  // Use Yahoo Finance quote API as primary live source (with proxy fallback)
-  const trySymbols = TRY_SYMBOLS;
-  for (const sym of trySymbols) {
-    try {
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}`;
-      // Try direct fetch first
-      try {
-        const res = await fetch(url);
-        if (res && res.ok) {
-          const j = await res.json();
-          window.__lastQuoteFetch = { symbol: sym, raw: j, status: res.status, path: 'yahoo-direct' };
-          const r = (j && j.quoteResponse && j.quoteResponse.result && j.quoteResponse.result[0]) || null;
-          if (r && (r.regularMarketPrice || r.regularMarketPreviousClose)) return { symbol: sym, quote: r };
-        }
-      } catch (e) {
-        // direct yahoo failed — will attempt proxy
-      }
+    const trySymbols = ['^NSEI', '^BSESN', 'NSEI']; // Nifty 50 and Sensex
 
-      // Proxy fallback (AllOrigins)
-      try {
-        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const pres = await fetch(proxy);
-        if (pres && pres.ok) {
-          const pj = await pres.json();
-          window.__lastQuoteFetch = { symbol: sym, raw: pj, status: pres.status, path: 'yahoo-proxy' };
-          const r = (pj && pj.quoteResponse && pj.quoteResponse.result && pj.quoteResponse.result[0]) || null;
-          if (r && (r.regularMarketPrice || r.regularMarketPreviousClose)) return { symbol: sym, quote: r };
+    for (const sym of trySymbols) {
+        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}`;
+
+        // Proxies ka list (agar ek fail ho toh dusra try karega)
+        const proxies = [
+            `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            `https://thingproxy.freeboard.io/fetch/${url}`
+        ];
+
+        for (const proxyUrl of proxies) {
+            try {
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                    const j = await res.json();
+                    const r = j?.quoteResponse?.result?.[0];
+                    if (r && (r.regularMarketPrice || r.regularMarketPreviousClose)) {
+                        console.log(`Live data fetched for ${sym} successfully!`);
+                        return { symbol: sym, quote: r };
+                    }
+                }
+            } catch (e) {
+                console.warn(`Proxy failed, trying next...`);
+            }
         }
-      } catch (e) {
-        // proxy also failed — try next symbol
-      }
-    } catch (e) {
-      // try next symbol
     }
-  }
-  throw new Error('No live quote available (CORS or symbol mismatch)');
+    throw new Error('Live data fetch failed. All proxies blocked.');
 }
 
 // Normalize different quote shapes (Finnhub or Yahoo) into common fields
