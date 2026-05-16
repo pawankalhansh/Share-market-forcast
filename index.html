@@ -1522,6 +1522,19 @@ async function runAnalysis() {
         }
     } catch (err) {
       output.innerHTML = `<span style="color:var(--red);font-family:var(--mono);font-size:11px">Live fetch failed: ${err.message}\n\nFalling back to local simulation.</span>`;
+      // Run connectivity autotest (direct + proxy) and show results to help debug
+      try {
+        const sym = 'NSEI';
+        const directTest = await testFinnhubDirect(sym);
+        const proxyTest = await testFinnhubProxy(sym);
+        const testPre = document.createElement('pre');
+        testPre.style.cssText = 'font-family:var(--mono);font-size:10px;line-height:1.4;color:var(--text-muted);white-space:pre-wrap;margin-top:8px;max-height:220px;overflow:auto;border-top:1px dashed var(--border);padding-top:8px';
+        testPre.textContent = 'AUTOTEST (after failure) — Finnhub connectivity (symbol: ' + sym + ')\n' + JSON.stringify({ direct: directTest, proxy: proxyTest }, null, 2);
+        output.appendChild(testPre);
+      } catch (e) {
+        console.warn('Autotest post-failure error', e);
+      }
+
       const forecast = generateLocalForecast();
       populateForecast(forecast);
       output.innerHTML += `<pre style="font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--text-dim);white-space:pre-wrap">${forecast.analysis_text}</pre>`;
