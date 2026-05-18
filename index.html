@@ -2558,30 +2558,39 @@
       'NIFTY 50': '^NSEI', 'SENSEX': '^BSESN'
     };
     async function searchStock() {
-      const q = document.getElementById('stock-search').value.trim().toUpperCase();
+      const q = document.getElementById('stock-search').value.trim();
       const results = document.getElementById('search-results');
       if (!q) { results.classList.remove('show'); return; }
 
-      // Find matching symbols
-      const matches = Object.keys(STOCK_MAP).filter(k => k.includes(q)).slice(0, 5);
-      if (matches.length === 0) {
-        results.innerHTML = '<div class="search-result-item"><span class="sr-name">No results found</span></div>';
-        results.classList.add('show');
-        return;
-      }
-
-      results.innerHTML = '<div class="search-result-item"><span class="sr-detail">Fetching...</span></div>';
+      results.innerHTML = '<div class="search-result-item"><span class="sr-detail">Searching...</span></div>';
       results.classList.add('show');
 
-      const symbols = matches.map(m => STOCK_MAP[m]).join(',');
       try {
+        let matches = [];
+        if (API_BASE) {
+          const searchData = await apiJSON(`/api/search?q=${encodeURIComponent(q)}`);
+          if (searchData.quotes && searchData.quotes.length > 0) {
+            matches = searchData.quotes.filter(q => q.quoteType === 'EQUITY' || q.quoteType === 'INDEX').slice(0, 5);
+          }
+        } else {
+          const localMatches = Object.keys(STOCK_MAP).filter(k => k.includes(q.toUpperCase())).slice(0, 5);
+          matches = localMatches.map(k => ({ shortname: k, symbol: STOCK_MAP[k] }));
+        }
+
+        if (matches.length === 0) {
+          results.innerHTML = '<div class="search-result-item"><span class="sr-name">No results found</span></div>';
+          return;
+        }
+
+        const symbols = matches.map(m => m.symbol).join(',');
         const json = API_BASE
           ? { spark: { result: (await apiJSON(`/api/quotes?symbols=${encodeURIComponent(symbols)}`)).result || [] } }
           : await fetch(`${LEGACY_PROXY}/?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols}&range=1d&interval=1m`)}`).then(res => res.json());
 
         let html = '';
-        matches.forEach(name => {
-          const sym = STOCK_MAP[name];
+        matches.forEach(match => {
+          const sym = match.symbol;
+          const name = match.shortname || match.longname || match.symbol;
           const spark = json.spark?.result?.find(r => r.symbol === sym);
           if (spark && spark.response?.[0]?.meta) {
             const meta = spark.response[0].meta;
@@ -2589,13 +2598,15 @@
             const prev = meta.chartPreviousClose || meta.regularMarketPrice;
             const change = prev ? ((meta.regularMarketPrice - prev) / prev * 100).toFixed(2) : '0.00';
             const isUp = parseFloat(change) >= 0;
-            html += `<div class="search-result-item">
+            // Clean symbol for TradingView (remove .NS or .BO suffix and add BSE prefix to avoid embed errors)
+            const tvSymbol = sym.includes('.') ? 'BSE:' + sym.split('.')[0] : sym;
+            html += `<div class="search-result-item" style="cursor:pointer" onclick="document.getElementById('stock-search').value=''; document.getElementById('search-results').classList.remove('show'); initTVChart('${tvSymbol}'); window.scrollTo({top: document.getElementById('tv-chart').offsetTop - 100, behavior: 'smooth'});">
           <div class="sr-name">${name}</div>
           <div class="sr-row">
             <span class="sr-price">₹${price}</span>
             <span class="sr-change" style="color:var(--${isUp ? 'green' : 'red'})">${isUp ? '▲' : '▼'} ${Math.abs(change)}%</span>
           </div>
-          <div class="sr-detail">${meta.currency || 'INR'} • ${meta.exchangeName || 'NSE'}</div>
+          <div class="sr-detail">${meta.currency || 'INR'} • Click to view chart</div>
         </div>`;
           }
         });
