@@ -1823,70 +1823,79 @@
     <div class="panel-header">
       <div class="panel-title"><span class="dot" style="background:var(--green)"></span>LIVE CHART</div>
       <div style="display:flex;gap:10px;align-items:center">
-        <div style="position:relative">
-          <input id="chart-search" type="text" list="chart-stocks" placeholder="🔍 Search stock... (e.g. RELIANCE)" value="SENSEX"
-            onkeydown="if(event.key==='Enter'){loadChartSymbol();}"
-            style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:11px;letter-spacing:1px;outline:none;width:280px">
-          <datalist id="chart-stocks">
-            <option value="SENSEX">BSE Sensex Index</option>
-            <option value="HDFCBANK">HDFC Bank</option>
-            <option value="ICICIBANK">ICICI Bank</option>
-            <option value="SBIN">State Bank of India</option>
-            <option value="AXISBANK">Axis Bank</option>
-            <option value="KOTAKBANK">Kotak Mahindra Bank</option>
-            <option value="INDUSINDBK">IndusInd Bank</option>
-            <option value="PNB">Punjab National Bank</option>
-            <option value="BANKBARODA">Bank of Baroda</option>
-            <option value="FEDERALBNK">Federal Bank</option>
-            <option value="BANDHANBNK">Bandhan Bank</option>
-            <option value="RELIANCE">Reliance Industries</option>
-            <option value="TCS">Tata Consultancy</option>
-            <option value="INFY">Infosys</option>
-            <option value="WIPRO">Wipro</option>
-            <option value="HCLTECH">HCL Technologies</option>
-            <option value="TECHM">Tech Mahindra</option>
-            <option value="LTIM">LTIMindtree</option>
-            <option value="TATAMOTORS">Tata Motors</option>
-            <option value="MARUTI">Maruti Suzuki</option>
-            <option value="M_M">Mahindra & Mahindra</option>
-            <option value="BAJAJ_AUTO">Bajaj Auto</option>
-            <option value="EICHERMOT">Eicher Motors</option>
-            <option value="HEROMOTOCO">Hero MotoCorp</option>
-            <option value="LT">Larsen & Toubro</option>
-            <option value="ADANIENT">Adani Enterprises</option>
-            <option value="ADANIPORTS">Adani Ports</option>
-            <option value="TITAN">Titan Company</option>
-            <option value="BAJFINANCE">Bajaj Finance</option>
-            <option value="BAJAJFINSV">Bajaj Finserv</option>
-            <option value="SUNPHARMA">Sun Pharma</option>
-            <option value="DRREDDY">Dr Reddys Labs</option>
-            <option value="CIPLA">Cipla</option>
-            <option value="DIVISLAB">Divis Laboratories</option>
-            <option value="APOLLOHOSP">Apollo Hospitals</option>
-            <option value="ITC">ITC Limited</option>
-            <option value="HINDUNILVR">Hindustan Unilever</option>
-            <option value="NESTLEIND">Nestle India</option>
-            <option value="BRITANNIA">Britannia Industries</option>
-            <option value="TATACONSUM">Tata Consumer</option>
-            <option value="ASIANPAINT">Asian Paints</option>
-            <option value="NTPC">NTPC Limited</option>
-            <option value="ONGC">Oil & Natural Gas</option>
-            <option value="POWERGRID">Power Grid Corp</option>
-            <option value="COALINDIA">Coal India</option>
-            <option value="TATASTEEL">Tata Steel</option>
-            <option value="JSWSTEEL">JSW Steel</option>
-            <option value="ULTRACEMCO">UltraTech Cement</option>
-            <option value="GRASIM">Grasim Industries</option>
-            <option value="SHRIRAMFIN">Shriram Finance</option>
-            <option value="TRENT">Trent Limited</option>
-            <option value="ZOMATO">Zomato</option>
-            <option value="PAYTM">Paytm (One97)</option>
-            <option value="IRCTC">IRCTC</option>
-            <option value="BPCL">Bharat Petroleum</option>
-            <option value="BHARTIARTL">Bharti Airtel</option>
-          </datalist>
-        </div>
-        <button onclick="loadChartSymbol()" style="background:var(--blue);color:var(--bg);border:none;border-radius:6px;padding:6px 14px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">LOAD</button>
+        <select id="chart-symbol" onchange="initTVChart(this.value)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer;outline:none;max-height:300px">
+          <optgroup label="📊 INDEX">
+            <option value="BSE:SENSEX">SENSEX</option>
+          </optgroup>
+          <optgroup label="🏦 BANKS">
+            <option value="BSE:HDFCBANK">HDFC BANK</option>
+            <option value="BSE:ICICIBANK">ICICI BANK</option>
+            <option value="BSE:SBIN">SBI</option>
+            <option value="BSE:AXISBANK">AXIS BANK</option>
+            <option value="BSE:KOTAKBANK">KOTAK BANK</option>
+            <option value="BSE:INDUSINDBK">INDUSIND BANK</option>
+            <option value="BSE:BANDHANBNK">BANDHAN BANK</option>
+            <option value="BSE:FEDERALBNK">FEDERAL BANK</option>
+            <option value="BSE:PNB">PNB</option>
+            <option value="BSE:BANKBARODA">BANK OF BARODA</option>
+          </optgroup>
+          <optgroup label="💻 IT">
+            <option value="BSE:TCS">TCS</option>
+            <option value="BSE:INFY">INFOSYS</option>
+            <option value="BSE:WIPRO">WIPRO</option>
+            <option value="BSE:HCLTECH">HCL TECH</option>
+            <option value="BSE:TECHM">TECH MAHINDRA</option>
+            <option value="BSE:LTIM">LTIMindtree</option>
+          </optgroup>
+          <optgroup label="🚗 AUTO">
+            <option value="BSE:TATAMOTORS">TATA MOTORS</option>
+            <option value="BSE:MARUTI">MARUTI SUZUKI</option>
+            <option value="BSE:M_M">M&amp;M</option>
+            <option value="BSE:BAJAJ_AUTO">BAJAJ AUTO</option>
+            <option value="BSE:EICHERMOT">EICHER MOTORS</option>
+            <option value="BSE:HEROMOTOCO">HERO MOTO</option>
+          </optgroup>
+          <optgroup label="🏢 CONGLOMERATE">
+            <option value="BSE:RELIANCE">RELIANCE</option>
+            <option value="BSE:LT">L&amp;T</option>
+            <option value="BSE:ADANIENT">ADANI ENT</option>
+            <option value="BSE:ADANIPORTS">ADANI PORTS</option>
+            <option value="BSE:TITAN">TITAN</option>
+            <option value="BSE:BAJFINANCE">BAJAJ FINANCE</option>
+            <option value="BSE:BAJAJFINSV">BAJAJ FINSV</option>
+            <option value="BSE:IRCTC">IRCTC</option>
+          </optgroup>
+          <optgroup label="💊 PHARMA">
+            <option value="BSE:SUNPHARMA">SUN PHARMA</option>
+            <option value="BSE:DRREDDY">DR REDDY'S</option>
+            <option value="BSE:CIPLA">CIPLA</option>
+            <option value="BSE:DIVISLAB">DIVI'S LAB</option>
+            <option value="BSE:APOLLOHOSP">APOLLO HOSP</option>
+          </optgroup>
+          <optgroup label="🍃 FMCG & CONSUMER">
+            <option value="BSE:ITC">ITC</option>
+            <option value="BSE:HINDUNILVR">HUL</option>
+            <option value="BSE:NESTLEIND">NESTLE</option>
+            <option value="BSE:BRITANNIA">BRITANNIA</option>
+            <option value="BSE:TATACONSUM">TATA CONSUMER</option>
+            <option value="BSE:ASIANPAINT">ASIAN PAINTS</option>
+            <option value="BSE:TRENT">TRENT</option>
+          </optgroup>
+          <optgroup label="⚡ ENERGY & METALS">
+            <option value="BSE:NTPC">NTPC</option>
+            <option value="BSE:ONGC">ONGC</option>
+            <option value="BSE:POWERGRID">POWER GRID</option>
+            <option value="BSE:COALINDIA">COAL INDIA</option>
+            <option value="BSE:TATASTEEL">TATA STEEL</option>
+            <option value="BSE:JSWSTEEL">JSW STEEL</option>
+            <option value="BSE:ULTRACEMCO">ULTRATECH</option>
+            <option value="BSE:GRASIM">GRASIM</option>
+          </optgroup>
+          <optgroup label="🚀 NEW AGE TECH">
+            <option value="BSE:ZOMATO">ZOMATO</option>
+            <option value="BSE:PAYTM">PAYTM</option>
+          </optgroup>
+        </select>
         <div class="tag">TRADINGVIEW</div>
       </div>
     </div>
@@ -2469,22 +2478,8 @@
     // ═══════════════════════════════════════════
     // 📊 TRADINGVIEW CHART WIDGET
     // ═══════════════════════════════════════════
-    function loadChartSymbol() {
-      initTVChart();
-    }
-
     function initTVChart(sym) {
-      let symbol = sym;
-      if (!symbol) {
-        const inputVal = document.getElementById('chart-search')?.value?.toUpperCase() || 'SENSEX';
-        // Add BSE: prefix if missing and not an explicit NSE: symbol
-        if (inputVal.includes(':')) {
-           symbol = inputVal;
-        } else {
-           symbol = 'BSE:' + inputVal;
-        }
-      }
-      
+      const symbol = sym || document.getElementById('chart-symbol')?.value || 'BSE:SENSEX';
       const container = document.getElementById('tv-chart');
       if (!container) return;
       const theme = document.documentElement.getAttribute('data-theme') || 'dark';
