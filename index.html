@@ -1821,8 +1821,74 @@
   <!-- TradingView Chart -->
   <div class="panel chart-panel" style="margin:0 28px;max-width:1544px;margin:0 auto;padding:0 28px">
     <div class="panel-header">
-      <div class="panel-title"><span class="dot" style="background:var(--green)"></span>INDIAN MARKET — LIVE CHART</div>
-      <div class="tag">TRADINGVIEW</div>
+      <div class="panel-title"><span class="dot" style="background:var(--green)"></span>LIVE CHART</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="position:relative">
+          <input id="chart-search" type="text" list="chart-stocks" placeholder="🔍 Search stock... (e.g. RELIANCE)" value="SENSEX"
+            onkeydown="if(event.key==='Enter'){loadChartSymbol();}"
+            style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:11px;letter-spacing:1px;outline:none;width:280px">
+          <datalist id="chart-stocks">
+            <option value="SENSEX">BSE Sensex Index</option>
+            <option value="HDFCBANK">HDFC Bank</option>
+            <option value="ICICIBANK">ICICI Bank</option>
+            <option value="SBIN">State Bank of India</option>
+            <option value="AXISBANK">Axis Bank</option>
+            <option value="KOTAKBANK">Kotak Mahindra Bank</option>
+            <option value="INDUSINDBK">IndusInd Bank</option>
+            <option value="PNB">Punjab National Bank</option>
+            <option value="BANKBARODA">Bank of Baroda</option>
+            <option value="FEDERALBNK">Federal Bank</option>
+            <option value="BANDHANBNK">Bandhan Bank</option>
+            <option value="RELIANCE">Reliance Industries</option>
+            <option value="TCS">Tata Consultancy</option>
+            <option value="INFY">Infosys</option>
+            <option value="WIPRO">Wipro</option>
+            <option value="HCLTECH">HCL Technologies</option>
+            <option value="TECHM">Tech Mahindra</option>
+            <option value="LTIM">LTIMindtree</option>
+            <option value="TATAMOTORS">Tata Motors</option>
+            <option value="MARUTI">Maruti Suzuki</option>
+            <option value="M_M">Mahindra & Mahindra</option>
+            <option value="BAJAJ_AUTO">Bajaj Auto</option>
+            <option value="EICHERMOT">Eicher Motors</option>
+            <option value="HEROMOTOCO">Hero MotoCorp</option>
+            <option value="LT">Larsen & Toubro</option>
+            <option value="ADANIENT">Adani Enterprises</option>
+            <option value="ADANIPORTS">Adani Ports</option>
+            <option value="TITAN">Titan Company</option>
+            <option value="BAJFINANCE">Bajaj Finance</option>
+            <option value="BAJAJFINSV">Bajaj Finserv</option>
+            <option value="SUNPHARMA">Sun Pharma</option>
+            <option value="DRREDDY">Dr Reddys Labs</option>
+            <option value="CIPLA">Cipla</option>
+            <option value="DIVISLAB">Divis Laboratories</option>
+            <option value="APOLLOHOSP">Apollo Hospitals</option>
+            <option value="ITC">ITC Limited</option>
+            <option value="HINDUNILVR">Hindustan Unilever</option>
+            <option value="NESTLEIND">Nestle India</option>
+            <option value="BRITANNIA">Britannia Industries</option>
+            <option value="TATACONSUM">Tata Consumer</option>
+            <option value="ASIANPAINT">Asian Paints</option>
+            <option value="NTPC">NTPC Limited</option>
+            <option value="ONGC">Oil & Natural Gas</option>
+            <option value="POWERGRID">Power Grid Corp</option>
+            <option value="COALINDIA">Coal India</option>
+            <option value="TATASTEEL">Tata Steel</option>
+            <option value="JSWSTEEL">JSW Steel</option>
+            <option value="ULTRACEMCO">UltraTech Cement</option>
+            <option value="GRASIM">Grasim Industries</option>
+            <option value="SHRIRAMFIN">Shriram Finance</option>
+            <option value="TRENT">Trent Limited</option>
+            <option value="ZOMATO">Zomato</option>
+            <option value="PAYTM">Paytm (One97)</option>
+            <option value="IRCTC">IRCTC</option>
+            <option value="BPCL">Bharat Petroleum</option>
+            <option value="BHARTIARTL">Bharti Airtel</option>
+          </datalist>
+        </div>
+        <button onclick="loadChartSymbol()" style="background:var(--blue);color:var(--bg);border:none;border-radius:6px;padding:6px 14px;font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer">LOAD</button>
+        <div class="tag">TRADINGVIEW</div>
+      </div>
     </div>
     <div class="chart-container" id="tv-chart"></div>
   </div>
@@ -2403,7 +2469,22 @@
     // ═══════════════════════════════════════════
     // 📊 TRADINGVIEW CHART WIDGET
     // ═══════════════════════════════════════════
-    function initTVChart() {
+    function loadChartSymbol() {
+      initTVChart();
+    }
+
+    function initTVChart(sym) {
+      let symbol = sym;
+      if (!symbol) {
+        const inputVal = document.getElementById('chart-search')?.value?.toUpperCase() || 'SENSEX';
+        // Add BSE: prefix if missing and not an explicit NSE: symbol
+        if (inputVal.includes(':')) {
+           symbol = inputVal;
+        } else {
+           symbol = 'BSE:' + inputVal;
+        }
+      }
+      
       const container = document.getElementById('tv-chart');
       if (!container) return;
       const theme = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -2425,7 +2506,7 @@
       }
       script.innerHTML = JSON.stringify({
         "autosize": true,
-        "symbol": "BSE:SENSEX",
+        "symbol": symbol,
         "interval": "D",
         "timezone": "Asia/Kolkata",
         "theme": isDark ? "dark" : "light",
@@ -2435,8 +2516,7 @@
         "gridColor": gridColor,
         "hide_top_toolbar": false,
         "hide_legend": false,
-        "allow_symbol_change": true,
-        "watchlist": ["BSE:SENSEX", "NSE:NIFTY", "NSE:BANKNIFTY", "BSE:RELIANCE", "NSE:TCS", "NSE:INFY", "NSE:HDFCBANK"],
+        "allow_symbol_change": false,
         "save_image": false,
         "calendar": false,
         "support_host": "https://www.tradingview.com",
