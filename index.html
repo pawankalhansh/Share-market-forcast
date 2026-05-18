@@ -8,6 +8,8 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Share Market Forecast — Sensex & Nifty AI Forecaster</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#080a12">
   <link
     href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap"
     rel="stylesheet">
@@ -1798,10 +1800,19 @@
 
       <!-- BUTTON BLOCK -->
       <div style="padding: 0 20px 20px">
-        <div style="text-align:center;margin-bottom:8px;">
+        <div style="display:flex; justify-content:center; gap: 15px; margin-bottom:12px; align-items:center; flex-wrap:wrap">
           <label style="color:var(--text-muted);font-family:var(--mono);font-size:12px;">
-            <input type="checkbox" id="liveToggle" checked style="margin-right:8px"> Use Live NSE/BSE Data
+            <input type="checkbox" id="liveToggle" checked style="margin-right:6px"> Live Data
           </label>
+          <select id="risk-mode" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:11px;outline:none;cursor:pointer">
+            <option value="intraday">⚡ Intraday</option>
+            <option value="swing" selected>🌊 Swing</option>
+            <option value="beginner">🛡️ Beginner</option>
+          </select>
+          <select id="lang-toggle" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-family:var(--mono);font-size:11px;outline:none;cursor:pointer">
+            <option value="en">🇺🇸 English</option>
+            <option value="hi" selected>🇮🇳 Hinglish</option>
+          </select>
         </div>
         <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
           <span class="btn-icon">🔮</span>
@@ -2278,10 +2289,17 @@
         📰 News: <b>${newsImpact >= 0 ? '+' + newsImpact.toFixed(0) : newsImpact.toFixed(0)}</b>`;
 
       let analysisFinalText = "";
+      const lang = document.getElementById('lang-toggle')?.value || 'hi';
+      const risk = document.getElementById('risk-mode')?.value || 'swing';
+
       if (isLiveSuccess) {
-        analysisFinalText = `🟢 LIVE DATA CONNECTED VIA PERSONAL SERVER:\n\nCurrently, NIFTY 50 is trading at ₹${nCurrent.toLocaleString('en-IN')} and SENSEX is at ₹${sCurrent.toLocaleString('en-IN')}.\nThe market structure shows a ${nBias.toLowerCase()} stance for tomorrow based on current trends.\n\nKey factors to watch:\n1. Global Markets: US indices are providing the main direction.\n2. Sector Rotation: Expect activity in banking and IT sectors.\n3. F&O Data: Options data points to strong resistance at upper levels.`;
+        if (lang === 'hi') {
+          analysisFinalText = `🟢 LIVE DATA CONNECTED:\n\nAbhi NIFTY 50 ₹${nCurrent.toLocaleString('en-IN')} par aur SENSEX ₹${sCurrent.toLocaleString('en-IN')} par trade kar raha hai.\nMarket ka structure kal ke liye ${nBias.toLowerCase()} lag raha hai.\n\nImportant points:\n1. Global Markets: US indices direction set kar rahe hain.\n2. Sectors: Bank aur IT stocks par nazar rakhein.\n3. Risk Mode: Aapne '${risk.toUpperCase()}' mode select kiya hai.`;
+        } else {
+          analysisFinalText = `🟢 LIVE DATA CONNECTED:\n\nCurrently, NIFTY 50 is trading at ₹${nCurrent.toLocaleString('en-IN')} and SENSEX is at ₹${sCurrent.toLocaleString('en-IN')}.\nThe market structure shows a ${nBias.toLowerCase()} stance for tomorrow.\n\nKey factors:\n1. Global Markets: US indices are providing direction.\n2. Sector Rotation: Expect activity in banking/IT.\n3. Risk Mode: You are using '${risk.toUpperCase()}' profile.`;
+        }
       } else {
-        analysisFinalText = `🟡 OFFLINE SIMULATION MODE:\n\nCurrently, NIFTY 50 is simulated at ₹${nCurrent.toLocaleString('en-IN')} and SENSEX is at ₹${sCurrent.toLocaleString('en-IN')}.\nThe market structure shows a ${nBias.toLowerCase()} stance for tomorrow.\n\nKey factors to watch:\n1. Global Markets: Simulated indices are showing stability.\n2. Sector Rotation: Expect activity in key index movers.\n3. F&O Data: Simulated options data points to strong resistance.`;
+        analysisFinalText = `🟡 OFFLINE SIMULATION MODE:\n\nNIFTY 50 is simulated at ₹${nCurrent.toLocaleString('en-IN')}.\nThe market structure shows a ${nBias.toLowerCase()} stance for tomorrow.`;
       }
 
       return {
@@ -2324,8 +2342,29 @@
         global_markets: finalGlobals,
         news_items: newsItems,
         analysis_text: analysisFinalText,
-        strategy: `TRADING STRATEGY FOR TOMORROW:\n\nNIFTY STRATEGY:\n→ BUY above ${nCurrent + 30}: Target ${nUpside} / ${nUpside + 50}, SL ${nCurrent - 40}\n→ SELL below ${nCurrent - 30}: Target ${nDownside} / ${nDownside - 50}, SL ${nCurrent + 40}\n\nSENSEX STRATEGY:\n→ BUY above ${sCurrent + 100}: Target ${sUpside} / ${sUpside + 150}, SL ${sCurrent - 100}\n→ SELL below ${sCurrent - 100}: Target ${sDownside} / ${sDownside - 150}, SL ${sCurrent + 100}\n\n⚠️ Remember: Markets can reverse on news. Always use stop losses.`
+        strategy: generateStrategyText(nCurrent, nUpside, nDownside, sCurrent, sUpside, sDownside, risk, lang)
       };
+    }
+
+    function generateStrategyText(nc, nup, ndn, sc, sup, sdn, risk, lang) {
+      // Adjust targets/SL based on risk profile
+      let tMult1 = 1, tMult2 = 1.5, slMult = 1;
+      if (risk === 'intraday') { tMult1 = 0.5; tMult2 = 1; slMult = 0.4; } // Tight SL, fast target
+      if (risk === 'beginner') { tMult1 = 0.8; tMult2 = 1.2; slMult = 0.5; } // Moderate target, tight SL
+
+      const nT1 = Math.round(nc + (nup - nc) * tMult1);
+      const nT2 = Math.round(nc + (nup - nc) * tMult2);
+      const nSlL = Math.round(nc - 50 * slMult);
+      
+      const nDT1 = Math.round(nc - (nc - ndn) * tMult1);
+      const nDT2 = Math.round(nc - (nc - ndn) * tMult2);
+      const nSlS = Math.round(nc + 50 * slMult);
+
+      if (lang === 'hi') {
+        return `📊 TRADING STRATEGY (${risk.toUpperCase()} MODE):\n\nNIFTY 50:\n🟢 BUY (CE): ${nc + 30} ke upar. Target ${nT1} / ${nT2}, Stoploss ${nSlL}\n🔴 SELL (PE): ${nc - 30} ke neeche. Target ${nDT1} / ${nDT2}, Stoploss ${nSlS}\n\n⚠️ Tip: Market news par reverse ho sakta hai. SL zaroor lagayein!`;
+      } else {
+        return `📊 TRADING STRATEGY (${risk.toUpperCase()} MODE):\n\nNIFTY 50:\n🟢 BUY (CE): Above ${nc + 30}. Target ${nT1} / ${nT2}, Stoploss ${nSlL}\n🔴 SELL (PE): Below ${nc - 30}. Target ${nDT1} / ${nDT2}, Stoploss ${nSlS}\n\n⚠️ Tip: Markets can reverse on sudden news. Always use SL!`;
+      }
     }
 
     // ═══════════════════════════════════════════
@@ -2712,6 +2751,15 @@
         msgs.innerHTML += `<div class="chat-msg bot" style="color:var(--red)">Error: ${e.message}</div>`;
       }
       msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('Service Worker Registered!', reg))
+          .catch(err => console.log('Service Worker Registration Failed!', err));
+      });
     }
   </script>
 </body>
