@@ -155,9 +155,9 @@ localStorage.setItem('smf-api-base', 'https://your-worker.workers.dev')
 
 ---
 
-## 🤖 Built With Claude AI
+## 🤖 Built With AI
 
-This project was designed and developed using **[Claude AI by Anthropic](https://claude.ai)** — demonstrating what AI-assisted creation looks like for non-developers in 2025.
+This project was designed and developed using **AI** — demonstrating what AI-assisted creation looks like for non-developers in 2026.
 
 > *"Not replacing skills. Supercharging them."*
 
