@@ -1641,6 +1641,7 @@
           </div>
           <div class="sentiment-label" id="sent-label" style="color:var(--text-dim)">LOADING...</div>
           <div class="sentiment-score" id="sent-score">Score: --/100</div>
+          <div class="sentiment-reason" id="sent-reason" style="font-size:10px;color:var(--text-dim);margin-top:12px;text-align:center;line-height:1.6;background:var(--surface);padding:8px;border-radius:6px;border:1px solid var(--border)">Click 'Run AI Analysis' to see mood factors.</div>
         </div>
       </div>
 
@@ -2254,7 +2255,27 @@
         { source: 'CNBC TV18', headline: 'FIIs maintain cautious stance ahead of major data release.', impact: 'BEARISH' },
       ];
 
-      const sentimentScore = Math.min(100, Math.max(0, 50 + Math.round(nChangePct * 15)));
+      // Smart Sentiment Calculation
+      let globalScore = 0, validGlobals = 0;
+      finalGlobals.forEach(fg => { if (!isNaN(fg.change)) { globalScore += fg.change; validGlobals++; } });
+      const avgGlobalChange = validGlobals > 0 ? (globalScore / validGlobals) : 0;
+      
+      let newsScore = 0;
+      newsItems.forEach(n => {
+        if(n.impact === 'BULLISH') newsScore += 1;
+        if(n.impact === 'BEARISH') newsScore -= 1;
+      });
+
+      const localImpact = Math.max(-25, Math.min(25, nChangePct * 15));
+      const globalImpact = Math.max(-15, Math.min(15, avgGlobalChange * 10));
+      const newsImpact = Math.max(-10, Math.min(10, newsScore * 5));
+      
+      const sentimentScore = Math.min(100, Math.max(0, Math.round(50 + localImpact + globalImpact + newsImpact)));
+      
+      const reasonHtml = `<b>MOOD FACTORS:</b><br>
+        🇮🇳 Local: <b>${localImpact >= 0 ? '+' + localImpact.toFixed(0) : localImpact.toFixed(0)}</b><br>
+        🌍 Global: <b>${globalImpact >= 0 ? '+' + globalImpact.toFixed(0) : globalImpact.toFixed(0)}</b><br>
+        📰 News: <b>${newsImpact >= 0 ? '+' + newsImpact.toFixed(0) : newsImpact.toFixed(0)}</b>`;
 
       let analysisFinalText = "";
       if (isLiveSuccess) {
@@ -2295,6 +2316,7 @@
         nifty_sl_short: String(nCurrent + Math.round(nCurrent * 0.01)),
 
         sentiment_score: sentimentScore,
+        sentiment_reason: reasonHtml,
         bullish_signals: nBias === 'BULLISH' ? 7 : 3,
         bearish_signals: nBias === 'BEARISH' ? 6 : 2,
         positive_global: nBias === 'BULLISH' ? 7 : 4,
@@ -2345,6 +2367,7 @@
       buildMiniChart('n-chart', data.nifty_bias === 'BULLISH' ? 'bull' : 'bear');
 
       setGauge(data.sentiment_score);
+      document.getElementById('sent-reason').innerHTML = data.sentiment_reason;
 
       document.getElementById('stat-bull').textContent = data.bullish_signals;
       document.getElementById('stat-bear').textContent = data.bearish_signals;
