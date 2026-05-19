@@ -1672,47 +1672,14 @@
         </table>
       </div>
 
-      <div class="panel" style="flex:1">
+      <div class="panel">
         <div class="panel-header">
           <div class="panel-title"><span class="dot" style="background:var(--blue)"></span>SECTOR PERFORMANCE</div>
           <div class="tag bull">LIVE</div>
         </div>
-        <div style="padding: 16px;">
-          <div style="margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; margin-bottom:4px;">
-              <span>NIFTY IT</span>
-              <span style="color:var(--green)">+1.24%</span>
-            </div>
-            <div style="width:100%; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;">
-              <div style="width:75%; height:100%; background:var(--green);"></div>
-            </div>
-          </div>
-          <div style="margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; margin-bottom:4px;">
-              <span>NIFTY BANK</span>
-              <span style="color:var(--green)">+0.85%</span>
-            </div>
-            <div style="width:100%; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;">
-              <div style="width:60%; height:100%; background:var(--green);"></div>
-            </div>
-          </div>
-          <div style="margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; margin-bottom:4px;">
-              <span>NIFTY AUTO</span>
-              <span style="color:var(--text-dim)">+0.10%</span>
-            </div>
-            <div style="width:100%; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;">
-              <div style="width:40%; height:100%; background:var(--text-dim);"></div>
-            </div>
-          </div>
-          <div>
-            <div style="display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; margin-bottom:4px;">
-              <span>NIFTY PHARMA</span>
-              <span style="color:var(--red)">-0.45%</span>
-            </div>
-            <div style="width:100%; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;">
-              <div style="width:30%; height:100%; background:var(--red);"></div>
-            </div>
+        <div id="sector-body" style="padding: 16px; display:flex; flex-direction:column; gap:12px;">
+          <div style="text-align:center;color:var(--text-muted);font-family:var(--mono);font-size:10px;padding:10px">
+            Click "Run AI Analysis" to load live prices...
           </div>
         </div>
       </div>
@@ -2153,14 +2120,21 @@
       { name: 'HANG SENG', sym: '^HSI', prefix: 'HK$', country: 'HONG KONG' },
       { name: 'CRUDE OIL', sym: 'CL=F', prefix: '$', country: 'GLOBAL' },
       { name: 'GOLD', sym: 'GC=F', prefix: '$', country: 'GLOBAL' },
-      { name: 'USD/INR', sym: 'INR=X', prefix: '₹', country: 'INDIA' }
+      { name: 'USD/INR', sym: 'INR=X', prefix: '₹', country: 'INDIA' },
+      { name: 'NIFTY BANK', sym: '^NSEBANK', prefix: '₹', country: 'SECTOR' },
+      { name: 'NIFTY FIN SRV', sym: '^CNXFIN', prefix: '₹', country: 'SECTOR' },
+      { name: 'NIFTY IT', sym: '^CNXIT', prefix: '₹', country: 'SECTOR' },
+      { name: 'NIFTY AUTO', sym: '^CNXAUTO', prefix: '₹', country: 'SECTOR' },
+      { name: 'NIFTY MIDCAP', sym: '^CNXMID', prefix: '₹', country: 'SECTOR' },
+      { name: 'NIFTY PHARMA', sym: '^CNXPHARMA', prefix: '₹', country: 'SECTOR' },
+      { name: 'INDIA VIX', sym: '^INDIAVIX', prefix: '', country: 'SECTOR' }
     ];
 
     // ═══════════════════════════════════════════
     // SINGLE FAST FETCH VIA PERSONAL PROXY (Spark API)
     // ═══════════════════════════════════════════
     async function fetchAllMarketData() {
-      const symbols = ['^NSEI', '^BSESN', '^DJI', '^GSPC', '^IXIC', '^N225', '^HSI', 'CL=F', 'GC=F', 'INR=X'];
+      const symbols = ['^NSEI', '^BSESN', '^DJI', '^GSPC', '^IXIC', '^N225', '^HSI', 'CL=F', 'GC=F', 'INR=X', '^NSEBANK', '^CNXFIN', '^CNXIT', '^CNXAUTO', '^CNXMID', '^CNXPHARMA', '^INDIAVIX'];
 
       if (API_BASE) {
         try {
@@ -2281,6 +2255,13 @@
         else if (g.sym === 'CL=F') bVal = 75;
         else if (g.sym === 'GC=F') bVal = 2400;
         else if (g.sym === 'INR=X') bVal = 83.5;
+        else if (g.sym === '^NSEBANK') bVal = 51200;
+        else if (g.sym === '^CNXFIN') bVal = 22800;
+        else if (g.sym === '^CNXIT') bVal = 35600;
+        else if (g.sym === '^CNXAUTO') bVal = 24500;
+        else if (g.sym === '^CNXMID') bVal = 55000;
+        else if (g.sym === '^CNXPHARMA') bVal = 19200;
+        else if (g.sym === '^INDIAVIX') bVal = 14.5;
 
         let dVal = bVal * (1 + randomDrift());
         let cPct = randomDrift() * 100;
@@ -2512,8 +2493,34 @@
       document.getElementById('stat-global').textContent = data.positive_global + '/10';
       document.getElementById('stat-news').textContent = data.news_scanned + '+';
 
+      // Render Sector Performance dynamically
+      const sectors = data.global_markets.filter(g => g.country === 'SECTOR');
+      if (sectors.length > 0) {
+        document.getElementById('sector-body').innerHTML = sectors.map(s => {
+          const isUp = s.change >= 0;
+          const color = isUp ? 'var(--green)' : 'var(--red)';
+          const valStr = String(s.val).replace(/[^0-9.]/g, '');
+          const val = parseFloat(valStr) || 100;
+          const pts = val * (Math.abs(s.change) / 100);
+          
+          return `
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px;">
+            <div>
+              <div style="font-family:var(--mono); font-size:11px; font-weight:bold;">${s.name}</div>
+              <div style="font-family:var(--mono); font-size:10px; color:var(--text-muted);">Current: ${s.val}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:var(--mono); font-size:11px; color:${color}; font-weight:bold;">${isUp ? '▲ +' : '▼ -'}${pts.toFixed(2)}</div>
+              <div style="font-family:var(--mono); font-size:10px; color:${color};">${isUp ? '+' : ''}${s.change.toFixed(2)}%</div>
+            </div>
+          </div>
+          `;
+        }).join('');
+      }
+
+      const globals = data.global_markets.filter(g => g.country !== 'SECTOR');
       const tbody = document.getElementById('markets-body');
-      tbody.innerHTML = data.global_markets.map(m => `
+      tbody.innerHTML = globals.map(m => `
     <tr>
       <td><div class="market-name">${m.name}</div><div class="market-country">${m.country}</div></td>
       <td class="market-price">${m.val}</td>
