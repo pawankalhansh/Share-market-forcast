@@ -3400,7 +3400,7 @@
         { icon: '💡', text: 'What is MACD?' },
         { icon: '🚀', text: 'Top Breakout stocks' },
         { icon: '💰', text: 'Long term investing' },
-        { icon: '🔥', text: 'Today\\'s top gainers' },
+        { icon: '🔥', text: 'Top gainers today' },
         { icon: '🛡️', text: 'Safe defensive stocks' },
         { icon: '📉', text: 'Why is market falling?' }
       ];
@@ -3411,7 +3411,7 @@
       const container = document.getElementById('chat-prompt-chips');
       if (container) {
         container.innerHTML = selected.map(chip => 
-          `<button class="chat-chip" onclick="usePrompt('${chip.text.replace(/'/g, "\\\\'")}')">${chip.icon} ${chip.text}</button>`
+          `<button class="chat-chip" onclick="usePrompt('` + chip.text + `')">` + chip.icon + ` ` + chip.text + `</button>`
         ).join('');
       }
     }
